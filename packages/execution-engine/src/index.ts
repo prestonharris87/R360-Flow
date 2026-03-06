@@ -5,3 +5,4 @@ export { createTenantLifecycleHooks } from './lifecycle-hooks.js';
 export type { CreateHooksParams } from './lifecycle-hooks.js';
 export { TenantCredentialsHelper } from './credentials-helper.js';
 export type { CredentialLookupFn } from './credentials-helper.js';
+export { R360NodeTypes } from './node-types.js';
