@@ -1,4 +1,4 @@
-import { FastifyInstance } from 'fastify';
+import type { FastifyInstance } from 'fastify';
 import { eq, and, count, desc, asc } from 'drizzle-orm';
 import { workflows } from '@r360/db';
 import { getDb } from '@r360/db';
@@ -67,7 +67,7 @@ export async function workflowRoutes(app: FastifyInstance): Promise<void> {
     const orderColumn =
       pagination.sortBy === 'name' ? workflows.name : workflows.updatedAt;
 
-    const [data, [{ total }]] = await Promise.all([
+    const [data, countResult] = await Promise.all([
       db
         .select()
         .from(workflows)
@@ -80,6 +80,8 @@ export async function workflowRoutes(app: FastifyInstance): Promise<void> {
         .from(workflows)
         .where(and(eq(workflows.tenantId, tenantId))),
     ]);
+
+    const total = countResult[0]?.total ?? 0;
 
     return reply.send({
       data,

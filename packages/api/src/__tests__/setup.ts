@@ -18,7 +18,7 @@ beforeAll(async () => {
     const { getDb } = await import('@r360/db');
     const db = getDb();
     // Verify connectivity with a simple query
-    await db.execute(/* sql */ `SELECT 1`);
+    await db.execute(sql`SELECT 1`);
   } catch {
     // Database not available -- unit tests can still run without it
     console.warn('[test-setup] Database not available, skipping migration check');

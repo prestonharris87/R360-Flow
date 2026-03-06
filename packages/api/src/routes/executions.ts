@@ -1,4 +1,4 @@
-import { FastifyInstance } from 'fastify';
+import type { FastifyInstance } from 'fastify';
 import { eq, and, count, desc } from 'drizzle-orm';
 import { executions, executionSteps, workflows } from '@r360/db';
 import { getDb } from '@r360/db';
@@ -110,7 +110,7 @@ export async function executionRoutes(app: FastifyInstance): Promise<void> {
 
     const whereClause = and(...conditions);
 
-    const [data, [{ total }]] = await Promise.all([
+    const [data, countResult] = await Promise.all([
       db
         .select()
         .from(executions)
@@ -123,6 +123,8 @@ export async function executionRoutes(app: FastifyInstance): Promise<void> {
         .from(executions)
         .where(whereClause),
     ]);
+
+    const total = countResult[0]?.total ?? 0;
 
     return reply.send({
       data,

@@ -1,4 +1,4 @@
-import { FastifyRequest, FastifyReply } from 'fastify';
+import type { FastifyRequest, FastifyReply } from 'fastify';
 import * as jose from 'jose';
 import type { TenantContext, UserRole } from '@r360/types';
 

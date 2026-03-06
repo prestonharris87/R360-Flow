@@ -18,7 +18,6 @@ type CredentialRow = typeof credentials.$inferSelect;
  * The encrypted data must NEVER be exposed via the API.
  */
 function sanitizeCredential(cred: CredentialRow) {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { encryptedData: _encryptedData, ...safe } = cred;
   return safe;
 }
@@ -55,7 +54,7 @@ export async function credentialRoutes(app: FastifyInstance): Promise<void> {
         })
         .returning();
 
-      return reply.status(201).send(sanitizeCredential(credential));
+      return reply.status(201).send(sanitizeCredential(credential!));
     }
   );
 
@@ -66,7 +65,7 @@ export async function credentialRoutes(app: FastifyInstance): Promise<void> {
     const db = getDb();
     const offset = (pagination.page - 1) * pagination.limit;
 
-    const [data, [{ total }]] = await Promise.all([
+    const [data, countResult] = await Promise.all([
       db
         .select()
         .from(credentials)
@@ -78,6 +77,8 @@ export async function credentialRoutes(app: FastifyInstance): Promise<void> {
         .from(credentials)
         .where(eq(credentials.tenantId, tenantId)),
     ]);
+
+    const total = countResult[0]?.total ?? 0;
 
     return reply.send({
       data: data.map(sanitizeCredential),

@@ -5,7 +5,10 @@ export default defineConfig({
     globals: false,
     environment: 'node',
     include: ['src/__tests__/**/*.test.ts'],
-    exclude: ['src/__tests__/integration/**'],
+    exclude: [
+      'src/__tests__/integration/**',
+      'src/__tests__/routes/**',
+    ],
     setupFiles: ['src/__tests__/setup.ts'],
     testTimeout: 10_000,
   },
