@@ -1,7 +1,7 @@
 {
-  "currentPhase": 5,
-  "phaseState": "building",
-  "completedPhases": [1, 2, 3, 4],
+  "currentPhase": 6,
+  "phaseState": "planning",
+  "completedPhases": [1, 2, 3, 4, 5],
   "lastCompletedStep": null,
   "notes": "",
   "status": "in_progress"
