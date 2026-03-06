@@ -60,7 +60,7 @@ async function buildTestApp(): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
 
   // Simulate auth middleware: set tenantContext from custom header
-  app.addHook('onRequest', async (request, reply) => {
+  app.addHook('onRequest', async (request, _reply) => {
     const tenantId =
       (request.headers['x-test-tenant-id'] as string) ?? TEST_TENANT_ID;
     // Decorate with tenantContext matching the real auth middleware shape

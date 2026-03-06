@@ -59,6 +59,15 @@ import { themeRoutes } from './routes/theme-routes.js';
 // Phase 6: API Documentation
 import { docsRoutes } from './routes/docs-routes.js';
 
+// Phase 6: Health, Error Handler, Version, Monitoring
+import { HealthService } from './services/health-service.js';
+import { healthRoutes as healthRoutesV2 } from './routes/health-routes.js';
+import { ErrorHandlerService } from './services/error-handler.js';
+import type { ErrorStore, ExecutionError } from './services/error-handler.js';
+import { VersionService } from './services/version-service.js';
+import type { VersionStore, WorkflowVersion } from './services/version-service.js';
+import { MonitoringService } from './services/monitoring-service.js';
+
 // ---------------------------------------------------------------------------
 // In-memory stub implementations (replaced with real DB implementations later)
 // ---------------------------------------------------------------------------
@@ -237,6 +246,71 @@ class InMemoryThemeStore implements ThemeStore {
   }
 }
 
+/** In-memory ErrorStore for development/testing */
+class InMemoryErrorStore implements ErrorStore {
+  private errors: ExecutionError[] = [];
+
+  async save(error: ExecutionError): Promise<void> {
+    this.errors.push(error);
+  }
+
+  async getById(id: string): Promise<ExecutionError | null> {
+    return this.errors.find((e) => e.id === id) ?? null;
+  }
+
+  async getByTenant(tenantId: string, limit?: number): Promise<ExecutionError[]> {
+    const filtered = this.errors.filter((e) => e.tenantId === tenantId);
+    return limit ? filtered.slice(0, limit) : filtered;
+  }
+
+  async getByWorkflow(tenantId: string, workflowId: string): Promise<ExecutionError[]> {
+    return this.errors.filter((e) => e.tenantId === tenantId && e.workflowId === workflowId);
+  }
+
+  async update(id: string, data: Partial<ExecutionError>): Promise<ExecutionError | null> {
+    const idx = this.errors.findIndex((e) => e.id === id);
+    if (idx === -1) return null;
+    this.errors[idx] = { ...this.errors[idx]!, ...data };
+    return this.errors[idx]!;
+  }
+}
+
+/** In-memory VersionStore for development/testing */
+class InMemoryVersionStore implements VersionStore {
+  private versions: WorkflowVersion[] = [];
+
+  async save(version: WorkflowVersion): Promise<WorkflowVersion> {
+    this.versions.push(version);
+    return version;
+  }
+
+  async getById(id: string): Promise<WorkflowVersion | null> {
+    return this.versions.find((v) => v.id === id) ?? null;
+  }
+
+  async getByWorkflowAndVersion(workflowId: string, version: number): Promise<WorkflowVersion | null> {
+    return this.versions.find((v) => v.workflowId === workflowId && v.version === version) ?? null;
+  }
+
+  async listByWorkflow(workflowId: string, tenantId: string): Promise<WorkflowVersion[]> {
+    return this.versions.filter((v) => v.workflowId === workflowId && v.tenantId === tenantId);
+  }
+
+  async getLatest(workflowId: string, tenantId: string): Promise<WorkflowVersion | null> {
+    const filtered = this.versions.filter(
+      (v) => v.workflowId === workflowId && v.tenantId === tenantId,
+    );
+    return filtered.length > 0 ? filtered[filtered.length - 1]! : null;
+  }
+
+  async update(id: string, data: Partial<WorkflowVersion>): Promise<WorkflowVersion | null> {
+    const idx = this.versions.findIndex((v) => v.id === id);
+    if (idx === -1) return null;
+    this.versions[idx] = { ...this.versions[idx]!, ...data };
+    return this.versions[idx]!;
+  }
+}
+
 // --- Phase 4 singletons (module-level so start/stop can access them) ---
 let schedulerService: SchedulerService | null = null;
 const executionMonitor = new ExecutionMonitor();
@@ -298,6 +372,16 @@ const templateService = new TemplateService(inMemoryTemplateStore);
 const inMemoryThemeStore = new InMemoryThemeStore();
 const themeService = new ThemeService(inMemoryThemeStore);
 
+const healthService = new HealthService();
+
+const inMemoryErrorStore = new InMemoryErrorStore();
+const errorHandlerService = new ErrorHandlerService(inMemoryErrorStore);
+
+const inMemoryVersionStore = new InMemoryVersionStore();
+const versionService = new VersionService(inMemoryVersionStore);
+
+const monitoringService = new MonitoringService();
+
 export async function buildApp(
   opts: { logger?: boolean | object } = {}
 ): Promise<FastifyInstance> {
@@ -349,9 +433,18 @@ export async function buildApp(
   app.decorate('planLimitsEnforcer', planLimitsEnforcer);
   app.decorate('tenantService', tenantService);
 
+  // --- Decorate the app with Phase 6 services for route access ---
+  app.decorate('errorHandlerService', errorHandlerService);
+  app.decorate('versionService', versionService);
+  app.decorate('monitoringService', monitoringService);
+  app.decorate('healthService', healthService);
+
   // --- Public routes (no auth) ---
 
   await app.register(healthRoutes);
+
+  // --- Phase 6: Enhanced health routes (public, no auth) ---
+  await app.register(healthRoutesV2, { healthService });
 
   // --- Phase 6: API Documentation routes (public, no auth) ---
   await app.register(docsRoutes);
@@ -383,6 +476,9 @@ export async function buildApp(
     if (request.url.startsWith('/api/admin/')) return;
     // Skip auth for API documentation routes (public)
     if (request.url.startsWith('/api/docs')) return;
+    // Skip auth for health/metrics endpoints (public)
+    if (request.url.startsWith('/api/health')) return;
+    if (request.url.startsWith('/api/metrics')) return;
 
     if (request.url.startsWith('/api/')) {
       await authMiddleware(request, reply);
@@ -441,6 +537,9 @@ export async function start(): Promise<FastifyInstance> {
 
   // --- Phase 5: Log Phase 5 services status ---
   app.log.info('Phase 5 services wired: AuditLogger, UsageTracker, PlanLimitsEnforcer, TenantService, StripeWebhookHandler, SecurityMiddleware');
+
+  // --- Phase 6: Log Phase 6 services status ---
+  app.log.info('Phase 6 services wired: TemplateService, ThemeService, HealthService, ErrorHandlerService, VersionService, MonitoringService, DocsRoutes');
 
   // --- Graceful shutdown ---
   const shutdownHandler = async () => {
