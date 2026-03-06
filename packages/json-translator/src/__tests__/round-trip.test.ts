@@ -101,7 +101,7 @@ describe('Round-trip fidelity: WB -> n8n -> WB', () => {
     const bodyParams = httpNode!.data.properties.bodyParameters as {
       parameters: Array<{ value: string }>;
     };
-    expect(bodyParams.parameters[0].value).toBe('={{ $json.greeting }}');
+    expect(bodyParams.parameters[0]!.value).toBe('={{ $json.greeting }}');
   });
 
   it('empty workflow translates both directions without error', () => {
@@ -148,14 +148,14 @@ describe('Round-trip fidelity: WB -> n8n -> WB', () => {
 
     const n8n = translateWBToN8n(singleNode);
     expect(n8n.nodes).toHaveLength(1);
-    expect(n8n.nodes[0].name).toBe('Start');
-    expect(n8n.nodes[0].type).toBe('n8n-nodes-base.manualTrigger');
+    expect(n8n.nodes[0]!.name).toBe('Start');
+    expect(n8n.nodes[0]!.type).toBe('n8n-nodes-base.manualTrigger');
     expect(n8n.connections).toEqual({});
 
     const roundTrip = translateN8nToWB(n8n);
     expect(roundTrip.diagram.nodes).toHaveLength(1);
-    expect(roundTrip.diagram.nodes[0].id).toBe('only-node');
-    expect(roundTrip.diagram.nodes[0].data.type).toBe('n8n-nodes-base.manualTrigger');
+    expect(roundTrip.diagram.nodes[0]!.id).toBe('only-node');
+    expect(roundTrip.diagram.nodes[0]!.data.type).toBe('n8n-nodes-base.manualTrigger');
   });
 
   it('branching workflow: If node produces 2 output slots', () => {
@@ -165,7 +165,7 @@ describe('Round-trip fidelity: WB -> n8n -> WB', () => {
 
     // Verify If node has two output branches
     expect(n8nResult.connections['Check Status']).toBeDefined();
-    expect(n8nResult.connections['Check Status'].main).toHaveLength(2);
+    expect(n8nResult.connections['Check Status']!.main).toHaveLength(2);
 
     // Round-trip back
     const roundTripWB = translateN8nToWB(n8nResult);

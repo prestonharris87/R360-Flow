@@ -3,8 +3,8 @@ import {
   mapEdgesToConnections,
   parseSourceHandle,
   parseTargetHandle,
-} from '../connection-mapping';
-import type { WorkflowBuilderEdge } from '../wb-types';
+} from '../connection-mapping.js';
+import type { WorkflowBuilderEdge } from '../wb-types.js';
 
 describe('parseSourceHandle', () => {
   it('returns main/0 for null', () => {
@@ -120,10 +120,10 @@ describe('mapEdgesToConnections', () => {
 
     const connections = mapEdgesToConnections(edges, nameMap);
 
-    expect(connections['Manual Trigger'].main[0]).toEqual([
+    expect(connections['Manual Trigger']!.main![0]).toEqual([
       { node: 'Set Values', type: 'main', index: 0 },
     ]);
-    expect(connections['Set Values'].main[0]).toEqual([
+    expect(connections['Set Values']!.main![0]).toEqual([
       { node: 'HTTP Request', type: 'main', index: 0 },
     ]);
   });
@@ -137,11 +137,11 @@ describe('mapEdgesToConnections', () => {
     const connections = mapEdgesToConnections(edges, nameMap);
 
     // Output 0 -> Slack
-    expect(connections['If'].main[0]).toEqual([
+    expect(connections['If']!.main![0]).toEqual([
       { node: 'Slack', type: 'main', index: 0 },
     ]);
     // Output 1 -> Gmail
-    expect(connections['If'].main[1]).toEqual([
+    expect(connections['If']!.main![1]).toEqual([
       { node: 'Gmail', type: 'main', index: 0 },
     ]);
   });
@@ -155,11 +155,11 @@ describe('mapEdgesToConnections', () => {
     const connections = mapEdgesToConnections(edges, nameMap);
 
     // Both targets connected from output 0
-    expect(connections['Manual Trigger'].main[0]).toHaveLength(2);
-    expect(connections['Manual Trigger'].main[0]).toContainEqual(
+    expect(connections['Manual Trigger']!.main![0]).toHaveLength(2);
+    expect(connections['Manual Trigger']!.main![0]).toContainEqual(
       { node: 'Set Values', type: 'main', index: 0 },
     );
-    expect(connections['Manual Trigger'].main[0]).toContainEqual(
+    expect(connections['Manual Trigger']!.main![0]).toContainEqual(
       { node: 'HTTP Request', type: 'main', index: 0 },
     );
   });
@@ -171,7 +171,7 @@ describe('mapEdgesToConnections', () => {
 
     const connections = mapEdgesToConnections(edges, nameMap);
 
-    expect(connections['Set Values'].main[0]).toEqual([
+    expect(connections['Set Values']!.main![0]).toEqual([
       { node: 'HTTP Request', type: 'main', index: 1 },
     ]);
   });
@@ -183,7 +183,7 @@ describe('mapEdgesToConnections', () => {
 
     const connections = mapEdgesToConnections(edges, nameMap);
 
-    expect(connections['Manual Trigger'].ai_tool[0]).toEqual([
+    expect(connections['Manual Trigger']!.ai_tool![0]).toEqual([
       { node: 'Set Values', type: 'ai_tool', index: 0 },
     ]);
   });
@@ -195,7 +195,7 @@ describe('mapEdgesToConnections', () => {
 
     const connections = mapEdgesToConnections(edges, nameMap);
 
-    expect(connections['Manual Trigger'].ai_agent[0]).toEqual([
+    expect(connections['Manual Trigger']!.ai_agent![0]).toEqual([
       { node: 'Set Values', type: 'ai_agent', index: 0 },
     ]);
   });
@@ -214,13 +214,13 @@ describe('mapEdgesToConnections', () => {
     const connections = mapEdgesToConnections(edges, nameMap);
 
     // Output 0 -> Slack
-    expect(connections['If'].main[0]).toEqual([
+    expect(connections['If']!.main![0]).toEqual([
       { node: 'Slack', type: 'main', index: 0 },
     ]);
     // Output 1 -> empty (gap fill)
-    expect(connections['If'].main[1]).toEqual([]);
+    expect(connections['If']!.main![1]).toEqual([]);
     // Output 2 -> Gmail
-    expect(connections['If'].main[2]).toEqual([
+    expect(connections['If']!.main![2]).toEqual([
       { node: 'Gmail', type: 'main', index: 0 },
     ]);
   });

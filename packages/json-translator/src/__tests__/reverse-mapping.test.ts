@@ -5,9 +5,9 @@ import {
   resolveWBNodeType,
   resolveIcon,
   TRIGGER_TYPES,
-} from '../reverse-mapping';
-import type { INode, IConnections } from '../types';
-import type { WorkflowBuilderEdge } from '../wb-types';
+} from '../reverse-mapping.js';
+import type { INode, IConnections } from '../types.js';
+import type { WorkflowBuilderEdge } from '../wb-types.js';
 
 // ---------------------------------------------------------------------------
 // resolveWBNodeType

@@ -1,5 +1,5 @@
-import type { INode, INodeParameters, NodeParameterValue } from './types';
-import type { WorkflowBuilderNode } from './wb-types';
+import type { INode, INodeParameters, NodeParameterValue } from './types.js';
+import type { WorkflowBuilderNode } from './wb-types.js';
 
 /**
  * Properties that are metadata (not n8n node parameters).

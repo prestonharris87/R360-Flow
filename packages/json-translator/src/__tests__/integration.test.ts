@@ -126,13 +126,13 @@ describe('Phase 2 Integration: Full Translation Pipeline', () => {
 
     // If node branches
     expect(n8n.connections['Is Enterprise?']).toBeDefined();
-    expect(n8n.connections['Is Enterprise?'].main).toHaveLength(2);
+    expect(n8n.connections['Is Enterprise?']!.main).toHaveLength(2);
 
     // Expression parameters preserved
     const setNode = n8n.nodes.find(n => n.name === 'Normalize Data');
     expect(setNode).toBeDefined();
     const assignments = (setNode!.parameters.assignments as { assignments: Array<{ value: string }> }).assignments;
-    expect(assignments[0].value).toBe('={{ $json.email.toLowerCase() }}');
+    expect(assignments[0]!.value).toBe('={{ $json.email.toLowerCase() }}');
 
     // Round-trip
     const roundTrip = translateN8nToWB(n8n);
@@ -192,7 +192,7 @@ describe('Phase 2 Integration: Full Translation Pipeline', () => {
 
     const roundTrip = translateN8nToWB(n8n);
     expect(roundTrip.diagram.nodes).toHaveLength(1);
-    expect(roundTrip.diagram.nodes[0].id).toBe('only-node');
+    expect(roundTrip.diagram.nodes[0]!.id).toBe('only-node');
   });
 
   it('preserves node IDs through full pipeline', () => {
@@ -221,10 +221,10 @@ describe('Phase 2 Integration: Full Translation Pipeline', () => {
     };
 
     const n8n = translateWBToN8n(workflow);
-    expect(n8n.nodes[0].id).toBe('uuid-aaaa-bbbb-cccc');
+    expect(n8n.nodes[0]!.id).toBe('uuid-aaaa-bbbb-cccc');
 
     const roundTrip = translateN8nToWB(n8n);
-    expect(roundTrip.diagram.nodes[0].id).toBe('uuid-aaaa-bbbb-cccc');
+    expect(roundTrip.diagram.nodes[0]!.id).toBe('uuid-aaaa-bbbb-cccc');
   });
 
   it('edge/connection topology preserved through round-trip', () => {

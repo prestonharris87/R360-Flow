@@ -1,6 +1,6 @@
-import type { IConnections, INode, NodeInputConnections } from './types';
-import type { WorkflowBuilderEdge, WorkflowBuilderNode } from './wb-types';
-import { mapN8nParametersToWBProperties } from './parameter-mapping';
+import type { IConnections, INode, NodeInputConnections } from './types.js';
+import type { WorkflowBuilderEdge, WorkflowBuilderNode } from './wb-types.js';
+import { mapN8nParametersToWBProperties } from './parameter-mapping.js';
 
 /**
  * Node types that represent trigger/start nodes in the WB visual editor.

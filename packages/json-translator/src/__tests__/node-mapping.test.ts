@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { mapWBNodeToN8nNode, buildNodeNameMap } from '../node-mapping';
-import type { WorkflowBuilderNode } from '../wb-types';
+import { mapWBNodeToN8nNode, buildNodeNameMap } from '../node-mapping.js';
+import type { WorkflowBuilderNode } from '../wb-types.js';
 
 describe('mapWBNodeToN8nNode', () => {
   it('maps a trigger node correctly (position, type, name)', () => {
