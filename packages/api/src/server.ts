@@ -4,6 +4,9 @@ import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import { randomUUID } from 'node:crypto';
 import { healthRoutes } from './routes/health.js';
+import { workflowRoutes } from './routes/workflows.js';
+import { credentialRoutes } from './routes/credentials.js';
+import { executionRoutes } from './routes/executions.js';
 import { authMiddleware } from './middleware/auth.js';
 
 export async function buildApp(
@@ -48,6 +51,12 @@ export async function buildApp(
       await authMiddleware(request, reply);
     }
   });
+
+  // --- Authenticated API routes ---
+
+  await app.register(workflowRoutes);
+  await app.register(credentialRoutes);
+  await app.register(executionRoutes);
 
   return app;
 }

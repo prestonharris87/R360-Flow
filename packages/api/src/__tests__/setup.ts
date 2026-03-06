@@ -1,4 +1,5 @@
 import { beforeAll, afterAll } from 'vitest';
+import { sql } from 'drizzle-orm';
 
 // Set test environment variables before any imports
 process.env.JWT_SECRET = 'dev-secret-change-in-production-min-32-chars!!';
@@ -33,3 +34,48 @@ afterAll(async () => {
     // Connection may not have been opened
   }
 });
+
+/**
+ * Truncates all tenant-scoped tables in the correct order (respecting FK constraints).
+ * Call this in `beforeAll` or `afterAll` of integration test suites that need
+ * a clean database state.
+ *
+ * Uses TRUNCATE ... CASCADE so foreign key order is handled by PostgreSQL.
+ */
+export async function truncateAllTables(): Promise<void> {
+  const { getDb } = await import('@r360/db');
+  const db = getDb();
+
+  // TRUNCATE with CASCADE handles FK dependencies automatically.
+  // Order: child tables first for clarity, though CASCADE makes it safe either way.
+  await db.execute(sql`
+    TRUNCATE TABLE
+      execution_steps,
+      executions,
+      webhooks,
+      credentials,
+      workflows,
+      users,
+      tenants
+    CASCADE
+  `);
+}
+
+/**
+ * Inserts a tenant record into the tenants table.
+ * Required before inserting any tenant-scoped data due to FK constraints.
+ */
+export async function seedTenant(
+  id: string,
+  name: string,
+  slug: string
+): Promise<void> {
+  const { getDb } = await import('@r360/db');
+  const db = getDb();
+
+  await db.execute(sql`
+    INSERT INTO tenants (id, name, slug)
+    VALUES (${id}::uuid, ${name}, ${slug})
+    ON CONFLICT (id) DO NOTHING
+  `);
+}
