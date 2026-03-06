@@ -83,7 +83,7 @@ pnpm build
 
 # ── 8. Create tables and seed data ──────────────────────────────────
 info "Creating tables and seeding dev data..."
-npx tsx "$PROJECT_ROOT/scripts/seed.ts"
+pnpm tsx "$PROJECT_ROOT/scripts/seed.ts"
 
 echo ""
 info "Setup complete!"

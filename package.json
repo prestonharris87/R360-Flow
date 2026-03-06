@@ -13,16 +13,17 @@
     "db:generate": "pnpm --filter @r360/db generate",
     "db:migrate": "pnpm --filter @r360/db migrate",
     "db:studio": "pnpm --filter @r360/db studio",
-    "db:seed": "npx tsx scripts/seed.ts",
+    "db:seed": "pnpm tsx scripts/seed.ts",
     "setup": "./scripts/dev-setup.sh"
   },
   "devDependencies": {
-    "@types/node": "^20.14.0",
-    "typescript": "^5.5.0",
-    "vitest": "^2.0.0",
-    "eslint": "^9.0.0",
     "@eslint/js": "^9.0.0",
+    "@types/node": "^20.14.0",
+    "eslint": "^9.0.0",
+    "prettier": "^3.3.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.5.0",
     "typescript-eslint": "^8.0.0",
-    "prettier": "^3.3.0"
+    "vitest": "^2.0.0"
   }
 }
