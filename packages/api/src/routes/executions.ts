@@ -9,6 +9,10 @@ import {
 } from '@r360/types';
 import { requireRole } from '../middleware/auth.js';
 import { z } from 'zod';
+import {
+  translateIfNeeded,
+  executeWorkflowForTenant,
+} from '../services/execution-bridge.js';
 
 const ExecutionQuerySchema = PaginationSchema.extend({
   workflowId: z.string().uuid().optional(),
@@ -18,7 +22,7 @@ const ExecutionQuerySchema = PaginationSchema.extend({
 });
 
 export async function executionRoutes(app: FastifyInstance): Promise<void> {
-  // TRIGGER EXECUTION (stub -- creates pending record)
+  // TRIGGER EXECUTION -- creates pending record then runs workflow asynchronously
   app.post(
     '/api/workflows/:id/execute',
     { preHandler: [requireRole('member')] },
@@ -64,8 +68,38 @@ export async function executionRoutes(app: FastifyInstance): Promise<void> {
         });
       }
 
+      // Validate the workflow has a definition
+      const definitionJson = workflow.definitionJson as Record<string, unknown>;
+      if (
+        !definitionJson ||
+        (typeof definitionJson === 'object' &&
+          Object.keys(definitionJson).length === 0)
+      ) {
+        return reply.status(422).send({
+          error: 'Unprocessable Entity',
+          message:
+            'Workflow has no definition. Save a workflow definition before executing.',
+          statusCode: 422,
+        });
+      }
+
+      // Translate workflow definition to n8n format if needed
+      let workflowData;
+      try {
+        workflowData = translateIfNeeded(definitionJson);
+      } catch (translateErr: unknown) {
+        const msg =
+          translateErr instanceof Error
+            ? translateErr.message
+            : 'Unknown translation error';
+        return reply.status(422).send({
+          error: 'Unprocessable Entity',
+          message: `Failed to translate workflow definition: ${msg}`,
+          statusCode: 422,
+        });
+      }
+
       // Create pending execution record
-      // In Phase 3, this will also enqueue a BullMQ job
       const [execution] = await db
         .insert(executions)
         .values({
@@ -77,7 +111,28 @@ export async function executionRoutes(app: FastifyInstance): Promise<void> {
         })
         .returning();
 
-      // Return 202 Accepted -- execution is queued, not completed
+      // Fire-and-forget: run execution asynchronously in the background.
+      // The client gets an immediate 202 response with the execution ID,
+      // and can poll GET /api/executions/:id for status updates.
+      executeWorkflowForTenant(
+        tenantId,
+        execution.id,
+        workflow.id,
+        workflow.name,
+        workflowData
+      ).catch((err: unknown) => {
+        // This catch handles truly unexpected errors that escape the
+        // try/catch inside executeWorkflowForTenant. The execution
+        // record may already be marked as "error" by the bridge.
+        const msg =
+          err instanceof Error ? err.message : 'Unknown background error';
+        request.log.error(
+          { executionId: execution.id, tenantId, error: msg },
+          'Background workflow execution failed unexpectedly'
+        );
+      });
+
+      // Return 202 Accepted -- execution runs in the background
       return reply.status(202).send(execution);
     }
   );

@@ -8,6 +8,7 @@
   "references": [
     { "path": "../types" },
     { "path": "../db" },
-    { "path": "../execution-engine" }
+    { "path": "../execution-engine" },
+    { "path": "../json-translator" }
   ]
 }

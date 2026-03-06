@@ -18,6 +18,8 @@
     "@r360/types": "workspace:*",
     "@r360/db": "workspace:*",
     "@r360/execution-engine": "workspace:*",
+    "@r360/json-translator": "workspace:*",
+    "n8n-workflow": "2.11.0",
     "drizzle-orm": "^0.33.0",
     "fastify": "^5.0.0",
     "@fastify/cors": "^10.0.0",

@@ -9,6 +9,7 @@ import { credentialRoutes } from './routes/credentials.js';
 import { executionRoutes } from './routes/executions.js';
 import { nodeRoutes } from './routes/nodes.js';
 import { authMiddleware } from './middleware/auth.js';
+import { ensureBootstrapped } from './services/execution-bridge.js';
 
 export async function buildApp(
   opts: { logger?: boolean | object } = {}
@@ -40,6 +41,11 @@ export async function buildApp(
     max: 100,
     timeWindow: '1 minute',
   });
+
+  // --- Bootstrap n8n DI container (once, before routes) ---
+  // This initializes InstanceSettings, BinaryDataService, etc.
+  // Idempotent: safe to call multiple times (no-op after first).
+  await ensureBootstrapped();
 
   // --- Public routes (no auth) ---
 
