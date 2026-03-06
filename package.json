@@ -12,7 +12,9 @@
     "dev": "pnpm --filter @r360/api dev",
     "db:generate": "pnpm --filter @r360/db generate",
     "db:migrate": "pnpm --filter @r360/db migrate",
-    "db:studio": "pnpm --filter @r360/db studio"
+    "db:studio": "pnpm --filter @r360/db studio",
+    "db:seed": "npx tsx scripts/seed.ts",
+    "setup": "./scripts/dev-setup.sh"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
