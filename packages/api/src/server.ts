@@ -46,6 +46,19 @@ import type { TenantDb, TenantRecord } from './services/tenant-service.js';
 import { AuditLogger } from './audit/audit-logger.js';
 import type { AuditStore, AuditEvent, SecurityEvent, AuditQuery } from './audit/audit-logger.js';
 
+// Phase 6: Templates
+import { TemplateService } from './services/template-service.js';
+import type { TemplateStore, TemplateRecord } from './services/template-service.js';
+import { templateRoutes } from './routes/template-routes.js';
+
+// Phase 6: White-label theming
+import { ThemeService } from './services/theme-service.js';
+import type { ThemeStore, ThemeConfig } from './services/theme-service.js';
+import { themeRoutes } from './routes/theme-routes.js';
+
+// Phase 6: API Documentation
+import { docsRoutes } from './routes/docs-routes.js';
+
 // ---------------------------------------------------------------------------
 // In-memory stub implementations (replaced with real DB implementations later)
 // ---------------------------------------------------------------------------
@@ -167,6 +180,63 @@ class InMemoryTenantDb implements TenantDb {
   }
 }
 
+/** In-memory TemplateStore for development/testing */
+class InMemoryTemplateStore implements TemplateStore {
+  private templates = new Map<string, TemplateRecord>();
+
+  async create(template: TemplateRecord): Promise<TemplateRecord> {
+    this.templates.set(template.id, template);
+    return template;
+  }
+
+  async getById(id: string): Promise<TemplateRecord | null> {
+    return this.templates.get(id) ?? null;
+  }
+
+  async listGlobal(): Promise<TemplateRecord[]> {
+    return [...this.templates.values()].filter((t) => t.isGlobal);
+  }
+
+  async listByTenant(tenantId: string): Promise<TemplateRecord[]> {
+    return [...this.templates.values()].filter(
+      (t) => !t.isGlobal && t.tenantId === tenantId,
+    );
+  }
+
+  async update(
+    id: string,
+    data: Partial<Omit<TemplateRecord, 'id' | 'createdAt'>>,
+  ): Promise<TemplateRecord | null> {
+    const existing = this.templates.get(id);
+    if (!existing) return null;
+    const updated = { ...existing, ...data } as TemplateRecord;
+    this.templates.set(id, updated);
+    return updated;
+  }
+
+  async delete(id: string): Promise<boolean> {
+    return this.templates.delete(id);
+  }
+}
+
+/** In-memory ThemeStore for development/testing */
+class InMemoryThemeStore implements ThemeStore {
+  private themes = new Map<string, ThemeConfig>();
+
+  async get(tenantId: string): Promise<ThemeConfig | null> {
+    return this.themes.get(tenantId) ?? null;
+  }
+
+  async save(theme: ThemeConfig): Promise<ThemeConfig> {
+    this.themes.set(theme.tenantId, theme);
+    return theme;
+  }
+
+  async delete(tenantId: string): Promise<boolean> {
+    return this.themes.delete(tenantId);
+  }
+}
+
 // --- Phase 4 singletons (module-level so start/stop can access them) ---
 let schedulerService: SchedulerService | null = null;
 const executionMonitor = new ExecutionMonitor();
@@ -220,6 +290,13 @@ const tenantServiceAdapter: TenantServiceInterface = {
 };
 
 const stripeWebhookHandler = new StripeWebhookHandler(tenantServiceAdapter, usageTracker);
+
+// --- Phase 6 singletons ---
+const inMemoryTemplateStore = new InMemoryTemplateStore();
+const templateService = new TemplateService(inMemoryTemplateStore);
+
+const inMemoryThemeStore = new InMemoryThemeStore();
+const themeService = new ThemeService(inMemoryThemeStore);
 
 export async function buildApp(
   opts: { logger?: boolean | object } = {}
@@ -276,6 +353,9 @@ export async function buildApp(
 
   await app.register(healthRoutes);
 
+  // --- Phase 6: API Documentation routes (public, no auth) ---
+  await app.register(docsRoutes);
+
   // --- Phase 4: Webhook routes (public -- external callers use signature verification, not JWT) ---
 
   const webhookRegistry = new WebhookRegistry();
@@ -301,6 +381,8 @@ export async function buildApp(
     if (request.url.startsWith('/api/billing/webhook')) return;
     // Skip auth for admin routes (they use API key auth)
     if (request.url.startsWith('/api/admin/')) return;
+    // Skip auth for API documentation routes (public)
+    if (request.url.startsWith('/api/docs')) return;
 
     if (request.url.startsWith('/api/')) {
       await authMiddleware(request, reply);
@@ -313,6 +395,12 @@ export async function buildApp(
   await app.register(credentialRoutes);
   await app.register(executionRoutes);
   await app.register(nodeRoutes);
+
+  // --- Phase 6: Template routes ---
+  await app.register(templateRoutes, { templateService });
+
+  // --- Phase 6: Theme routes ---
+  await app.register(themeRoutes, { themeService });
 
   // --- Phase 5: Admin routes (behind API key auth, in a scoped register) ---
 

@@ -6,6 +6,8 @@ process.env.JWT_SECRET = 'dev-secret-change-in-production-min-32-chars!!';
 process.env.JWT_ISSUER = 'r360-flow';
 process.env.JWT_AUDIENCE = 'r360-flow-api';
 process.env.MASTER_ENCRYPTION_KEY = 'dev-master-key-change-in-production-256bit!!';
+process.env.STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY ?? 'sk_test_fake_key_for_testing_only';
+process.env.STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET ?? 'whsec_test_fake_secret';
 process.env.DATABASE_URL =
   process.env.DATABASE_URL ??
   'postgresql://r360:r360_dev_password@localhost:5432/r360flow_test';
