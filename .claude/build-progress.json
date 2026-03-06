@@ -2,7 +2,7 @@
   "currentPhase": 2,
   "phaseState": "building",
   "completedPhases": [1],
-  "lastCompletedStep": null,
-  "notes": "",
+  "lastCompletedStep": "p2-task-13",
+  "notes": "Phase 2 tasks 1,7,8,13 complete",
   "status": "in_progress"
 }
