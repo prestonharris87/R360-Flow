@@ -180,6 +180,7 @@ describe('Query Audit - Tenant Isolation', () => {
 
         for (let i = 1; i < queryBlocks.length; i++) {
           const block = queryBlocks[i];
+          if (!block) continue;
 
           // Find the end of the query chain (next semicolon, return, or closing brace at column 0)
           const endMatch = block.match(/;|\n\s*return\s|\n\s*\}\s*,/);

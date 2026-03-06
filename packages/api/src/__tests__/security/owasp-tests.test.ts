@@ -641,7 +641,7 @@ describe('OWASP Security Tests', () => {
 
       // Decode header and verify algorithm
       const header = JSON.parse(
-        Buffer.from(parts[0], 'base64url').toString('utf-8'),
+        Buffer.from(parts[0]!, 'base64url').toString('utf-8'),
       );
       expect(header.alg).toBe('HS256');
     });
