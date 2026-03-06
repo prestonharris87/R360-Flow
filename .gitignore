@@ -1,0 +1,14 @@
+node_modules/
+dist/
+build/
+.env
+.env.*
+*.local
+n8n/
+workflowbuilder/
+.claude/ralph-loop.local.md
+.claude/build-progress.json
+.DS_Store
+*.log
+coverage/
+.turbo/
