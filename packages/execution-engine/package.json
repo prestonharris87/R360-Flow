@@ -10,6 +10,7 @@
     "test": "vitest run",
     "test:unit": "vitest run",
     "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:e2e": "vitest run --config vitest.integration.config.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/",
     "cardinal-rule": "bash ../../scripts/check-cardinal-rule.sh"
