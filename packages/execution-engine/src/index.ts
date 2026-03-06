@@ -10,3 +10,9 @@ export { convertToPaletteItem, convertN8nPropertiesToSchema, buildNodePalette } 
 export type { N8nPaletteItem, NodeSchema, NodePropertiesSchema, FieldSchema, PaletteFilterOptions } from './node-palette.js';
 export { ExecutionService } from './execution-service.js';
 export type { ExecuteWorkflowParams } from './execution-service.js';
+export { getPriorityForPlan, getLimitsForPlan, createDefaultQueueConfig } from './queue/queue-config.js';
+export type { TenantPlan, TenantLimits, QueueConfig } from './queue/queue-config.js';
+export { CodeSandbox } from './sandbox/code-sandbox.js';
+export type { SandboxConfig } from './sandbox/code-sandbox.js';
+export { TimeoutManager } from './sandbox/timeout-manager.js';
+export type { TimeoutConfig } from './sandbox/timeout-manager.js';
