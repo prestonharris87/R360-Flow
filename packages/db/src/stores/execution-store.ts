@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { getDb } from '../connection.js';
 import { executions } from '../schema/executions.js';
 
@@ -42,7 +42,7 @@ export const executionStore = {
         finishedAt: params.finished_at,
         error: params.error,
       })
-      .where(eq(executions.id, executionId))
+      .where(and(eq(executions.id, executionId), eq(executions.tenantId, params.tenant_id)))
       .returning();
     return row;
   },
