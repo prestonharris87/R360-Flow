@@ -1,0 +1,84 @@
+{
+  "name": "Branching Workflow",
+  "layoutDirection": "RIGHT",
+  "diagram": {
+    "nodes": [
+      {
+        "id": "node-1",
+        "type": "start-node",
+        "position": { "x": 100, "y": 300 },
+        "data": {
+          "type": "n8n-nodes-base.webhook",
+          "icon": "Webhook",
+          "properties": {
+            "label": "Webhook",
+            "httpMethod": "POST",
+            "path": "incoming"
+          }
+        }
+      },
+      {
+        "id": "node-2",
+        "type": "decision-node",
+        "position": { "x": 350, "y": 300 },
+        "data": {
+          "type": "n8n-nodes-base.if",
+          "icon": "GitBranch",
+          "properties": {
+            "label": "Check Status",
+            "conditions": {
+              "options": {
+                "caseSensitive": true
+              },
+              "conditions": [
+                {
+                  "leftValue": "={{ $json.status }}",
+                  "rightValue": "active",
+                  "operator": { "type": "string", "operation": "equals" }
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": "node-3",
+        "type": "node",
+        "position": { "x": 600, "y": 200 },
+        "data": {
+          "type": "n8n-nodes-base.slack",
+          "icon": "MessageSquare",
+          "properties": {
+            "label": "Notify Slack",
+            "resource": "message",
+            "operation": "post",
+            "channel": "general",
+            "text": "User is active!"
+          }
+        }
+      },
+      {
+        "id": "node-4",
+        "type": "node",
+        "position": { "x": 600, "y": 400 },
+        "data": {
+          "type": "n8n-nodes-base.gmail",
+          "icon": "Mail",
+          "properties": {
+            "label": "Send Email",
+            "resource": "message",
+            "operation": "send",
+            "sendTo": "admin@example.com",
+            "subject": "Inactive user alert"
+          }
+        }
+      }
+    ],
+    "edges": [
+      { "id": "e-0", "source": "node-1", "target": "node-2" },
+      { "id": "e-1", "source": "node-2", "target": "node-3", "sourceHandle": "output_0" },
+      { "id": "e-2", "source": "node-2", "target": "node-4", "sourceHandle": "output_1" }
+    ],
+    "viewport": { "x": 0, "y": 0, "zoom": 1 }
+  }
+}

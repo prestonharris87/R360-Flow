@@ -1,0 +1,64 @@
+{
+  "name": "Simple Linear Workflow",
+  "layoutDirection": "RIGHT",
+  "diagram": {
+    "nodes": [
+      {
+        "id": "node-1",
+        "type": "start-node",
+        "position": { "x": 100, "y": 200 },
+        "data": {
+          "type": "n8n-nodes-base.manualTrigger",
+          "icon": "PlayCircle",
+          "properties": {
+            "label": "Start"
+          }
+        }
+      },
+      {
+        "id": "node-2",
+        "type": "node",
+        "position": { "x": 350, "y": 200 },
+        "data": {
+          "type": "n8n-nodes-base.set",
+          "icon": "PenTool",
+          "properties": {
+            "label": "Set Values",
+            "mode": "manual",
+            "assignments": {
+              "assignments": [
+                { "name": "greeting", "value": "Hello World", "type": "string" }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": "node-3",
+        "type": "node",
+        "position": { "x": 600, "y": 200 },
+        "data": {
+          "type": "n8n-nodes-base.httpRequest",
+          "icon": "Globe",
+          "properties": {
+            "label": "Send Request",
+            "typeVersion": 4,
+            "method": "POST",
+            "url": "https://api.example.com/greet",
+            "sendBody": true,
+            "bodyParameters": {
+              "parameters": [
+                { "name": "message", "value": "={{ $json.greeting }}" }
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "edges": [
+      { "id": "e-0", "source": "node-1", "target": "node-2" },
+      { "id": "e-1", "source": "node-2", "target": "node-3" }
+    ],
+    "viewport": { "x": 0, "y": 0, "zoom": 1 }
+  }
+}

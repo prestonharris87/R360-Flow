@@ -4,9 +4,15 @@
  * Bidirectional translation between Workflow Builder's DiagramModel
  * and n8n's WorkflowParameters format.
  *
- * Phase 2 scaffold: type definitions only.
- * Translation functions will be added in Steps 2.4a through 2.4e.
+ * Entry point: translateWBToN8n() and translateN8nToWB() orchestrate
+ * the forward and reverse translation pipelines respectively.
  */
+
+import { mapWBNodeToN8nNode, buildNodeNameMap } from './node-mapping.js';
+import { mapEdgesToConnections } from './connection-mapping.js';
+import { mapN8nToWBNode, mapConnectionsToEdges } from './reverse-mapping.js';
+import type { WorkflowParameters } from './types.js';
+import type { DiagramModel, WorkflowBuilderNode, WorkflowBuilderEdge } from './wb-types.js';
 
 // n8n-compatible types (locally defined, no n8n imports)
 export type {
@@ -21,7 +27,7 @@ export type {
   IConnections,
   WorkflowParameters,
   WorkflowSettings,
-} from './types';
+} from './types.js';
 
 // Workflow Builder types (locally defined mirrors of SDK types)
 export type {
@@ -33,4 +39,72 @@ export type {
   WorkflowBuilderNodeType,
   Viewport,
   LayoutDirection,
-} from './wb-types';
+} from './wb-types.js';
+
+/**
+ * Translate a Workflow Builder DiagramModel to n8n WorkflowParameters.
+ *
+ * This is the forward path: visual editor -> execution engine.
+ */
+export function translateWBToN8n(diagram: DiagramModel): WorkflowParameters {
+  const nodes = diagram.diagram.nodes;
+  const edges = diagram.diagram.edges;
+
+  // Build unique name map (n8n requires unique node names)
+  const nameMap = buildNodeNameMap(nodes);
+
+  // Map each WB node to an n8n INode, using the resolved unique name
+  const n8nNodes = nodes.map((wbNode) => {
+    const n8nNode = mapWBNodeToN8nNode(wbNode);
+    const uniqueName = nameMap.get(wbNode.id);
+    if (uniqueName) {
+      n8nNode.name = uniqueName;
+    }
+    return n8nNode;
+  });
+
+  // Map edges to n8n connections (using the name map)
+  const connections = mapEdgesToConnections(edges, nameMap);
+
+  return {
+    name: diagram.name,
+    nodes: n8nNodes,
+    connections,
+    active: false,
+    settings: {
+      executionOrder: 'v1',
+    },
+  };
+}
+
+/**
+ * Translate n8n WorkflowParameters to a Workflow Builder DiagramModel.
+ *
+ * This is the reverse path: execution engine -> visual editor.
+ */
+export function translateN8nToWB(workflow: WorkflowParameters): DiagramModel {
+  // Build reverse lookup: node name -> node ID
+  const nodeIdByName = new Map<string, string>();
+  for (const node of workflow.nodes) {
+    nodeIdByName.set(node.name, node.id);
+  }
+
+  // Map each n8n node to a WB node
+  const wbNodes: WorkflowBuilderNode[] = workflow.nodes.map(mapN8nToWBNode);
+
+  // Map connections to edges
+  const wbEdges: WorkflowBuilderEdge[] = mapConnectionsToEdges(
+    workflow.connections,
+    nodeIdByName,
+  );
+
+  return {
+    name: workflow.name,
+    layoutDirection: 'RIGHT',
+    diagram: {
+      nodes: wbNodes,
+      edges: wbEdges,
+      viewport: { x: 0, y: 0, zoom: 1 },
+    },
+  };
+}
