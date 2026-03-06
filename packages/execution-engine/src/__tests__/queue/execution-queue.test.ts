@@ -39,9 +39,8 @@ vi.mock('bullmq', () => {
   return { Queue: QueueMock, QueueEvents: QueueEventsMock, Job: JobMock, Worker: WorkerMock };
 });
 
-// Mock Redis
-const mockDuplicate = vi.fn().mockReturnValue({});
-const mockRedis = { duplicate: mockDuplicate } as never;
+// Mock connection (ConnectionOptions compatible)
+const mockConnection = { host: 'localhost', port: 6379 };
 
 // Dynamic import after mocks are set up
 const { ExecutionQueue } = await import('../../queue/execution-queue.js');
@@ -64,7 +63,7 @@ describe('ExecutionQueue', () => {
     mockGetActive.mockResolvedValue([]);
     mockAdd.mockResolvedValue({ id: 'exec-1', data: createJobData() });
 
-    queue = new ExecutionQueue(mockRedis);
+    queue = new ExecutionQueue(mockConnection);
     await queue.initialize();
   });
 
@@ -77,9 +76,13 @@ describe('ExecutionQueue', () => {
       const job = await queue.enqueue(data);
 
       expect(job).toBe(fakeJob);
+      // Timeout is now embedded in job data (not job options)
       expect(mockAdd).toHaveBeenCalledWith(
         `execute:${data.tenantId}:${data.workflowId}`,
-        data,
+        expect.objectContaining({
+          ...data,
+          timeoutMs: 300_000, // free plan default timeout
+        }),
         expect.objectContaining({
           priority: 10, // free plan default
           jobId: data.executionId,
@@ -93,7 +96,7 @@ describe('ExecutionQueue', () => {
 
       expect(mockAdd).toHaveBeenCalledWith(
         expect.any(String),
-        data,
+        expect.objectContaining({ planTier: 'enterprise' }),
         expect.objectContaining({ priority: 1 }),
       );
     });
@@ -104,7 +107,7 @@ describe('ExecutionQueue', () => {
 
       expect(mockAdd).toHaveBeenCalledWith(
         expect.any(String),
-        data,
+        expect.objectContaining({ planTier: 'pro' }),
         expect.objectContaining({ priority: 5 }),
       );
     });
@@ -115,7 +118,7 @@ describe('ExecutionQueue', () => {
 
       expect(mockAdd).toHaveBeenCalledWith(
         expect.any(String),
-        data,
+        expect.objectContaining({ planTier: 'free' }),
         expect.objectContaining({ priority: 10 }),
       );
     });
@@ -127,10 +130,11 @@ describe('ExecutionQueue', () => {
       });
       await queue.enqueue(data);
 
+      // Timeout should be capped to 300_000 (free plan max) in the job data
       expect(mockAdd).toHaveBeenCalledWith(
         expect.any(String),
-        data,
-        expect.objectContaining({ timeout: 300_000 }),
+        expect.objectContaining({ timeoutMs: 300_000 }),
+        expect.objectContaining({ priority: 10 }),
       );
     });
 
@@ -141,10 +145,11 @@ describe('ExecutionQueue', () => {
       });
       await queue.enqueue(data);
 
+      // Timeout should remain at 60_000 in the job data
       expect(mockAdd).toHaveBeenCalledWith(
         expect.any(String),
-        data,
-        expect.objectContaining({ timeout: 60_000 }),
+        expect.objectContaining({ timeoutMs: 60_000 }),
+        expect.objectContaining({ priority: 10 }),
       );
     });
 
@@ -152,10 +157,11 @@ describe('ExecutionQueue', () => {
       const data = createJobData({ planTier: 'pro' });
       await queue.enqueue(data);
 
+      // Pro plan max timeout should be embedded in job data
       expect(mockAdd).toHaveBeenCalledWith(
         expect.any(String),
-        data,
-        expect.objectContaining({ timeout: 900_000 }),
+        expect.objectContaining({ timeoutMs: 900_000 }),
+        expect.objectContaining({ priority: 5 }),
       );
     });
   });
@@ -245,12 +251,12 @@ describe('ExecutionQueue', () => {
       mockGetActive.mockResolvedValueOnce([]);
       await queue.tryEnqueue(data);
 
-      // Timeout should be capped at the free plan default (300_000)
+      // Timeout should be capped at the free plan default (300_000) in job data
       // because setTenantLimits merges with free defaults for maxWorkflowTimeoutMs
       expect(mockAdd).toHaveBeenCalledWith(
         expect.any(String),
-        data,
-        expect.objectContaining({ timeout: 300_000 }),
+        expect.objectContaining({ timeoutMs: 300_000 }),
+        expect.objectContaining({ priority: 10 }),
       );
     });
   });

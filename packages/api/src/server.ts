@@ -11,6 +11,49 @@ import { nodeRoutes } from './routes/nodes.js';
 import { authMiddleware } from './middleware/auth.js';
 import { ensureBootstrapped } from './services/execution-bridge.js';
 
+// Phase 4: Webhook components
+import { WebhookRegistry } from './webhooks/webhook-registry.js';
+import { WebhookRouter } from './webhooks/webhook-router.js';
+import type { ExecutionQueueInterface } from './webhooks/webhook-router.js';
+import { webhookRoutes } from './routes/webhook-routes.js';
+
+// Phase 4: Scheduler
+import { SchedulerService } from './scheduler/scheduler-service.js';
+import type { SchedulerDb, SchedulerExecutionQueue } from './scheduler/scheduler-service.js';
+
+// Phase 4: Real-time WebSocket
+import { ExecutionMonitor } from './realtime/execution-monitor.js';
+import { createExecutionWSServer } from './realtime/ws-server.js';
+import type { WSAuthenticator } from './realtime/ws-server.js';
+
+// --- Phase 4 singletons (module-level so start/stop can access them) ---
+let schedulerService: SchedulerService | null = null;
+const executionMonitor = new ExecutionMonitor();
+
+// Stub execution queue for webhook router (replaced with real BullMQ queue at integration time)
+const stubExecutionQueue: ExecutionQueueInterface & SchedulerExecutionQueue = {
+  async enqueue(data) {
+    console.log('[StubQueue] Would enqueue execution:', data.executionId, 'for tenant:', data.tenantId);
+    return { id: data.executionId };
+  },
+};
+
+// Stub scheduler DB adapter (replaced with real DB adapter at integration time)
+const stubSchedulerDb: SchedulerDb = {
+  async getActiveScheduledWorkflows() { return []; },
+  async updateLastRunAt(_workflowId: string, _runAt: Date) { /* no-op */ },
+};
+
+// Stub WebSocket authenticator (replaced with real auth at integration time)
+const stubWSAuth: WSAuthenticator = {
+  async authenticateToken(token: string) {
+    // In production, validate JWT and extract tenant/user info
+    // For now, reject all connections unless a real authenticator is wired in
+    if (!token) return null;
+    return null;
+  },
+};
+
 export async function buildApp(
   opts: { logger?: boolean | object } = {}
 ): Promise<FastifyInstance> {
@@ -51,6 +94,12 @@ export async function buildApp(
 
   await app.register(healthRoutes);
 
+  // --- Phase 4: Webhook routes (public — external callers use signature verification, not JWT) ---
+
+  const webhookRegistry = new WebhookRegistry();
+  const webhookRouter = new WebhookRouter(webhookRegistry, stubExecutionQueue);
+  await app.register(webhookRoutes(webhookRouter));
+
   // --- Auth hook for /api/* routes ---
 
   app.addHook('onRequest', async (request, reply) => {
@@ -82,6 +131,30 @@ export async function start(): Promise<FastifyInstance> {
     app.log.error(err);
     process.exit(1);
   }
+
+  // --- Phase 4: Start scheduler service ---
+  schedulerService = new SchedulerService(stubSchedulerDb, stubExecutionQueue);
+  schedulerService.start();
+  app.log.info('Scheduler service started');
+
+  // --- Phase 4: Attach WebSocket server for real-time execution events ---
+  // Fastify's underlying Node.js HTTP server is available after listen()
+  const httpServer = app.server;
+  createExecutionWSServer(httpServer, executionMonitor, stubWSAuth);
+  app.log.info('WebSocket server attached for execution monitoring');
+
+  // --- Graceful shutdown ---
+  const shutdownHandler = async () => {
+    app.log.info('Shutting down...');
+    if (schedulerService) {
+      schedulerService.stop();
+      app.log.info('Scheduler service stopped');
+    }
+    await app.close();
+  };
+
+  process.on('SIGTERM', () => { void shutdownHandler(); });
+  process.on('SIGINT', () => { void shutdownHandler(); });
 
   return app;
 }

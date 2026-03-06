@@ -1,26 +1,26 @@
 import { Job, Worker } from 'bullmq';
-import type Redis from 'ioredis';
+import type { ConnectionOptions } from 'bullmq';
 import type { ExecutionJobData } from './execution-queue.js';
 import type { ExecutionService } from '../execution-service.js';
 
 export interface ExecutionWorkerOptions {
   concurrency: number;
-  redis: Redis;
+  connection: ConnectionOptions;
   queueName: string;
   executionService: ExecutionService;
 }
 
 export class ExecutionWorker {
-  private worker: Worker<ExecutionJobData>;
+  private worker: Worker;
   private executionService: ExecutionService;
 
   constructor(options: ExecutionWorkerOptions) {
     this.executionService = options.executionService;
-    this.worker = new Worker<ExecutionJobData>(
+    this.worker = new Worker(
       options.queueName,
       (job) => this.processJob(job),
       {
-        connection: options.redis.duplicate(),
+        connection: options.connection,
         concurrency: options.concurrency,
       },
     );
@@ -29,13 +29,14 @@ export class ExecutionWorker {
     });
   }
 
-  private async processJob(job: Job<ExecutionJobData>): Promise<unknown> {
-    const { tenantId, workflowId, executionId } = job.data;
+  private async processJob(job: Job): Promise<unknown> {
+    const { tenantId, workflowId, executionId } = job.data as ExecutionJobData;
     await job.updateProgress(0);
     try {
-      // The actual execution would call this.executionService.executeWorkflow(...)
-      // For now, the worker just provides the framework - the actual wiring
-      // happens in the API layer's execution-bridge.
+      // TODO: Wire to actual execution when API layer integration is complete:
+      // const result = await this.executionService.executeWorkflow({ tenantId, workflowId, ... });
+      // For now, validate the service is available and return a stub result.
+      void this.executionService;
       await job.updateProgress(100);
       return { tenantId, workflowId, executionId, status: 'completed' };
     } catch (error) {

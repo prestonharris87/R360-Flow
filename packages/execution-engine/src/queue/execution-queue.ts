@@ -1,6 +1,5 @@
 import { Queue, QueueEvents, Job } from 'bullmq';
-import type { Worker } from 'bullmq';
-import type Redis from 'ioredis';
+import type { Worker, ConnectionOptions } from 'bullmq';
 import {
   type QueueConfig,
   type TenantPlan,
@@ -26,25 +25,25 @@ export interface ExecutionJobData {
 }
 
 export class ExecutionQueue {
-  private queue!: Queue<ExecutionJobData>;
+  private queue!: Queue;
   private queueEvents!: QueueEvents;
   private config: QueueConfig;
-  private redis: Redis;
+  private connection: ConnectionOptions;
   private tenantLimits: Map<string, TenantLimits> = new Map();
   private tenantRateCounters: Map<string, { count: number; windowStart: number }> = new Map();
 
-  constructor(redis: Redis, config?: Partial<QueueConfig>) {
-    this.redis = redis;
+  constructor(connection: ConnectionOptions, config?: Partial<QueueConfig>) {
+    this.connection = connection;
     this.config = { ...createDefaultQueueConfig(), ...config };
   }
 
   async initialize(): Promise<void> {
-    this.queue = new Queue<ExecutionJobData>(this.config.queueName, {
-      connection: this.redis.duplicate(),
+    this.queue = new Queue(this.config.queueName, {
+      connection: this.connection,
       defaultJobOptions: this.config.defaultJobOptions,
     });
     this.queueEvents = new QueueEvents(this.config.queueName, {
-      connection: this.redis.duplicate(),
+      connection: this.connection,
     });
   }
 
@@ -89,7 +88,7 @@ export class ExecutionQueue {
 
   async getActiveCountForTenant(tenantId: string): Promise<number> {
     const jobs = await this.queue.getActive();
-    return jobs.filter((j) => j.data.tenantId === tenantId).length;
+    return jobs.filter((j: Job) => (j.data as ExecutionJobData).tenantId === tenantId).length;
   }
 
   async tryEnqueue(data: ExecutionJobData): Promise<boolean> {
@@ -101,47 +100,49 @@ export class ExecutionQueue {
     return true;
   }
 
-  async enqueue(data: ExecutionJobData): Promise<Job<ExecutionJobData>> {
+  async enqueue(data: ExecutionJobData): Promise<Job> {
     const priority = getPriorityForPlan(data.planTier || 'free');
     const limits = this.getTenantLimits(data.tenantId, data.planTier);
-    const timeout = data.timeoutMs
+    // Compute effective timeout and store in job data for the worker to enforce.
+    // BullMQ v5 does not support per-job timeout in JobsOptions.
+    const effectiveTimeout = data.timeoutMs
       ? Math.min(data.timeoutMs, limits.maxWorkflowTimeoutMs)
       : limits.maxWorkflowTimeoutMs;
 
     return this.queue.add(
       `execute:${data.tenantId}:${data.workflowId}`,
-      data,
-      { priority, timeout, jobId: data.executionId },
+      { ...data, timeoutMs: effectiveTimeout },
+      { priority, jobId: data.executionId },
     );
   }
 
   createWorker(
-    processor: (job: Job<ExecutionJobData>) => Promise<unknown>,
+    processor: (job: Job) => Promise<unknown>,
     options?: { concurrency?: number },
-  ): Worker<ExecutionJobData> {
+  ): Worker {
     // Dynamic import to avoid circular deps - Worker is from bullmq
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { Worker: BullWorker } = require('bullmq') as typeof import('bullmq');
-    return new BullWorker<ExecutionJobData>(
+    return new BullWorker(
       this.config.queueName,
       processor,
       {
-        connection: this.redis.duplicate(),
+        connection: this.connection,
         concurrency: options?.concurrency || 5,
       },
     );
   }
 
-  onCompleted(handler: (job: Job<ExecutionJobData>) => void): void {
+  onCompleted(handler: (job: Job) => void): void {
     this.queueEvents.on('completed', async ({ jobId }) => {
-      const job = await Job.fromId<ExecutionJobData>(this.queue, jobId);
+      const job = await Job.fromId(this.queue, jobId);
       if (job) handler(job);
     });
   }
 
-  onFailed(handler: (job: Job<ExecutionJobData> | undefined, error: Error) => void): void {
+  onFailed(handler: (job: Job | undefined, error: Error) => void): void {
     this.queueEvents.on('failed', async ({ jobId, failedReason }) => {
-      const job = jobId ? await Job.fromId<ExecutionJobData>(this.queue, jobId) : undefined;
+      const job = jobId ? await Job.fromId(this.queue, jobId) : undefined;
       handler(job ?? undefined, new Error(failedReason));
     });
   }

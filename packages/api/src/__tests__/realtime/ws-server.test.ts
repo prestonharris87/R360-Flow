@@ -8,44 +8,77 @@ import type { ExecutionEvent } from '../../realtime/execution-monitor.js';
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
-/** Wait for the next message on a WebSocket client, parsed as JSON. */
-function waitForMessage<T = unknown>(ws: WebSocket, timeoutMs = 3000): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => {
-      reject(new Error(`waitForMessage timed out after ${timeoutMs}ms`));
-    }, timeoutMs);
-
-    ws.once('message', (data) => {
-      clearTimeout(timer);
-      resolve(JSON.parse(data.toString()) as T);
-    });
-  });
+/**
+ * Wraps a WebSocket client with a message queue so that messages arriving
+ * before a consumer awaits them are buffered rather than lost.
+ */
+interface QueuedClient {
+  ws: WebSocket;
+  /** Returns the next message (buffered or future), parsed as JSON. */
+  nextMessage: <T = unknown>(timeoutMs?: number) => Promise<T>;
+  /** Wait for the WebSocket close event. */
+  waitClose: (timeoutMs?: number) => Promise<{ code: number; reason: string }>;
 }
 
-/** Wait for a WebSocket to reach OPEN readyState. */
-function waitForOpen(ws: WebSocket, timeoutMs = 3000): Promise<void> {
-  return new Promise<void>((resolve, reject) => {
-    if (ws.readyState === WebSocket.OPEN) {
-      resolve();
-      return;
+function createQueuedClient(port: number, queryParams = ''): QueuedClient {
+  const ws = new WebSocket(
+    `ws://127.0.0.1:${port}${queryParams ? `?${queryParams}` : ''}`,
+  );
+
+  // Buffer incoming messages immediately so none are missed
+  const messageQueue: unknown[] = [];
+  const waiters: Array<(value: unknown) => void> = [];
+
+  ws.on('message', (data) => {
+    const parsed: unknown = JSON.parse(data.toString());
+    const waiter = waiters.shift();
+    if (waiter) {
+      waiter(parsed);
+    } else {
+      messageQueue.push(parsed);
     }
-    const timer = setTimeout(() => {
-      reject(new Error('waitForOpen timed out'));
-    }, timeoutMs);
-
-    ws.once('open', () => {
-      clearTimeout(timer);
-      resolve();
-    });
-
-    ws.once('error', (err) => {
-      clearTimeout(timer);
-      reject(err);
-    });
   });
+
+  function nextMessage<T = unknown>(timeoutMs = 3000): Promise<T> {
+    // If there's already a buffered message, return it immediately
+    const buffered = messageQueue.shift();
+    if (buffered !== undefined) {
+      return Promise.resolve(buffered as T);
+    }
+
+    return new Promise<T>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        // Remove this waiter from the queue
+        const idx = waiters.indexOf(resolve as (value: unknown) => void);
+        if (idx !== -1) waiters.splice(idx, 1);
+        reject(new Error(`nextMessage timed out after ${timeoutMs}ms`));
+      }, timeoutMs);
+
+      const wrappedResolve = (value: unknown) => {
+        clearTimeout(timer);
+        resolve(value as T);
+      };
+      waiters.push(wrappedResolve);
+    });
+  }
+
+  function waitClose(timeoutMs = 3000): Promise<{ code: number; reason: string }> {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        reject(new Error('waitClose timed out'));
+      }, timeoutMs);
+
+      ws.once('close', (code, reason) => {
+        clearTimeout(timer);
+        resolve({ code, reason: reason.toString() });
+      });
+    });
+  }
+
+  return { ws, nextMessage, waitClose };
 }
 
-/** Wait for a WebSocket close event and return { code, reason }. */
+/** Wait for a raw WebSocket close event (for unauthenticated clients). */
 function waitForClose(ws: WebSocket, timeoutMs = 3000): Promise<{ code: number; reason: string }> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
@@ -57,11 +90,6 @@ function waitForClose(ws: WebSocket, timeoutMs = 3000): Promise<{ code: number; 
       resolve({ code, reason: reason.toString() });
     });
   });
-}
-
-/** Create a connected WS client against the test server. */
-function createClient(port: number, queryParams = ''): WebSocket {
-  return new WebSocket(`ws://127.0.0.1:${port}${queryParams ? `?${queryParams}` : ''}`);
 }
 
 function makeEvent(overrides: Partial<ExecutionEvent> = {}): ExecutionEvent {
@@ -142,23 +170,23 @@ describe('WebSocket Server', () => {
   // ── Authentication ───────────────────────────────────────────────────
 
   it('accepts authenticated connection and sends welcome message', async () => {
-    const ws = trackClient(createClient(port, 'token=valid-token-tenant-1'));
-    await waitForOpen(ws);
+    const client = createQueuedClient(port, 'token=valid-token-tenant-1');
+    trackClient(client.ws);
 
-    const welcome = await waitForMessage<{ type: string; tenantId: string }>(ws);
+    const welcome = await client.nextMessage<{ type: string; tenantId: string }>();
     expect(welcome.type).toBe('connected');
     expect(welcome.tenantId).toBe('tenant-1');
   });
 
   it('rejects connection with no token (close code 4001)', async () => {
-    const ws = trackClient(createClient(port));
+    const ws = trackClient(new WebSocket(`ws://127.0.0.1:${port}`));
     const { code, reason } = await waitForClose(ws);
     expect(code).toBe(4001);
     expect(reason).toBe('Missing authentication token');
   });
 
   it('rejects connection with invalid token (close code 4003)', async () => {
-    const ws = trackClient(createClient(port, 'token=bad-token'));
+    const ws = trackClient(new WebSocket(`ws://127.0.0.1:${port}?token=bad-token`));
     const { code, reason } = await waitForClose(ws);
     expect(code).toBe(4003);
     expect(reason).toBe('Invalid authentication token');
@@ -167,15 +195,15 @@ describe('WebSocket Server', () => {
   // ── Subscription ─────────────────────────────────────────────────────
 
   it('client subscribes to execution updates and receives events', async () => {
-    const ws = trackClient(createClient(port, 'token=valid-token-tenant-1'));
-    await waitForOpen(ws);
+    const client = createQueuedClient(port, 'token=valid-token-tenant-1');
+    trackClient(client.ws);
 
     // Consume welcome
-    await waitForMessage(ws);
+    await client.nextMessage();
 
     // Subscribe to an execution
-    ws.send(JSON.stringify({ action: 'subscribe_execution', executionId: 'exec-1' }));
-    const subAck = await waitForMessage<{ type: string; executionId: string }>(ws);
+    client.ws.send(JSON.stringify({ action: 'subscribe_execution', executionId: 'exec-1' }));
+    const subAck = await client.nextMessage<{ type: string; executionId: string }>();
     expect(subAck.type).toBe('subscribed');
     expect(subAck.executionId).toBe('exec-1');
 
@@ -183,19 +211,19 @@ describe('WebSocket Server', () => {
     const event = makeEvent({ type: 'node_started', nodeId: 'node-1', nodeName: 'HTTP Request' });
     monitor.emit(event);
 
-    const received = await waitForMessage<{ type: string; executionId: string; nodeId: string }>(ws);
+    const received = await client.nextMessage<{ type: string; event: ExecutionEvent }>();
     expect(received.type).toBe('execution_event');
-    expect(received.executionId).toBe('exec-1');
-    expect(received.nodeId).toBe('node-1');
+    expect(received.event.executionId).toBe('exec-1');
+    expect(received.event.nodeId).toBe('node-1');
   });
 
   it('client subscribes to tenant-wide updates and receives events', async () => {
-    const ws = trackClient(createClient(port, 'token=valid-token-tenant-1'));
-    await waitForOpen(ws);
-    await waitForMessage(ws); // welcome
+    const client = createQueuedClient(port, 'token=valid-token-tenant-1');
+    trackClient(client.ws);
+    await client.nextMessage(); // welcome
 
-    ws.send(JSON.stringify({ action: 'subscribe_tenant' }));
-    const subAck = await waitForMessage<{ type: string; tenantId: string }>(ws);
+    client.ws.send(JSON.stringify({ action: 'subscribe_tenant' }));
+    const subAck = await client.nextMessage<{ type: string; tenantId: string }>();
     expect(subAck.type).toBe('subscribed_tenant');
     expect(subAck.tenantId).toBe('tenant-1');
 
@@ -203,81 +231,81 @@ describe('WebSocket Server', () => {
     monitor.emit(makeEvent({ executionId: 'exec-a' }));
     monitor.emit(makeEvent({ executionId: 'exec-b' }));
 
-    const msg1 = await waitForMessage<{ type: string; executionId: string }>(ws);
-    const msg2 = await waitForMessage<{ type: string; executionId: string }>(ws);
-    expect(msg1.executionId).toBe('exec-a');
-    expect(msg2.executionId).toBe('exec-b');
+    const msg1 = await client.nextMessage<{ type: string; event: ExecutionEvent }>();
+    const msg2 = await client.nextMessage<{ type: string; event: ExecutionEvent }>();
+    expect(msg1.event.executionId).toBe('exec-a');
+    expect(msg2.event.executionId).toBe('exec-b');
   });
 
   // ── Tenant isolation ─────────────────────────────────────────────────
 
   it('tenant isolation - client only receives events for their tenant', async () => {
     // Connect tenant-1 client
-    const ws1 = trackClient(createClient(port, 'token=valid-token-tenant-1'));
-    await waitForOpen(ws1);
-    await waitForMessage(ws1); // welcome
+    const client1 = createQueuedClient(port, 'token=valid-token-tenant-1');
+    trackClient(client1.ws);
+    await client1.nextMessage(); // welcome
 
     // Connect tenant-2 client
-    const ws2 = trackClient(createClient(port, 'token=valid-token-tenant-2'));
-    await waitForOpen(ws2);
-    await waitForMessage(ws2); // welcome
+    const client2 = createQueuedClient(port, 'token=valid-token-tenant-2');
+    trackClient(client2.ws);
+    await client2.nextMessage(); // welcome
 
     // Both subscribe to tenant-wide events
-    ws1.send(JSON.stringify({ action: 'subscribe_tenant' }));
-    await waitForMessage(ws1); // subscribed_tenant ack
+    client1.ws.send(JSON.stringify({ action: 'subscribe_tenant' }));
+    await client1.nextMessage(); // subscribed_tenant ack
 
-    ws2.send(JSON.stringify({ action: 'subscribe_tenant' }));
-    await waitForMessage(ws2); // subscribed_tenant ack
+    client2.ws.send(JSON.stringify({ action: 'subscribe_tenant' }));
+    await client2.nextMessage(); // subscribed_tenant ack
 
     // Emit event for tenant-1 only
     monitor.emit(makeEvent({ tenantId: 'tenant-1', executionId: 'exec-t1' }));
 
     // tenant-1 client should receive it
-    const msg1 = await waitForMessage<{ type: string; executionId: string }>(ws1);
+    const msg1 = await client1.nextMessage<{ type: string; event: ExecutionEvent }>();
     expect(msg1.type).toBe('execution_event');
-    expect(msg1.executionId).toBe('exec-t1');
+    expect(msg1.event.executionId).toBe('exec-t1');
 
     // tenant-2 client should NOT receive it (we verify by sending a tenant-2 event
     // and ensuring that's the first message tenant-2 gets)
     monitor.emit(makeEvent({ tenantId: 'tenant-2', executionId: 'exec-t2' }));
 
-    const msg2 = await waitForMessage<{ type: string; executionId: string }>(ws2);
+    const msg2 = await client2.nextMessage<{ type: string; event: ExecutionEvent }>();
     expect(msg2.type).toBe('execution_event');
-    expect(msg2.executionId).toBe('exec-t2');
+    expect(msg2.event.executionId).toBe('exec-t2');
     // If tenant-2 had received the tenant-1 event, this would be 'exec-t1' instead
   });
 
   // ── Error handling ───────────────────────────────────────────────────
 
   it('sends error on unknown action', async () => {
-    const ws = trackClient(createClient(port, 'token=valid-token-tenant-1'));
-    await waitForOpen(ws);
-    await waitForMessage(ws); // welcome
+    const client = createQueuedClient(port, 'token=valid-token-tenant-1');
+    trackClient(client.ws);
+    await client.nextMessage(); // welcome
 
-    ws.send(JSON.stringify({ action: 'unknown_action' }));
-    const errorMsg = await waitForMessage<{ type: string; message: string }>(ws);
+    client.ws.send(JSON.stringify({ action: 'unknown_action' }));
+    const errorMsg = await client.nextMessage<{ type: string; message: string }>();
     expect(errorMsg.type).toBe('error');
     expect(errorMsg.message).toContain('Unknown action');
   });
 
   it('sends error on invalid JSON message', async () => {
-    const ws = trackClient(createClient(port, 'token=valid-token-tenant-1'));
-    await waitForOpen(ws);
-    await waitForMessage(ws); // welcome
+    const client = createQueuedClient(port, 'token=valid-token-tenant-1');
+    trackClient(client.ws);
+    await client.nextMessage(); // welcome
 
-    ws.send('this is not json');
-    const errorMsg = await waitForMessage<{ type: string; message: string }>(ws);
+    client.ws.send('this is not json');
+    const errorMsg = await client.nextMessage<{ type: string; message: string }>();
     expect(errorMsg.type).toBe('error');
     expect(errorMsg.message).toBe('Invalid message format');
   });
 
   it('sends error when subscribe_execution is missing executionId', async () => {
-    const ws = trackClient(createClient(port, 'token=valid-token-tenant-1'));
-    await waitForOpen(ws);
-    await waitForMessage(ws); // welcome
+    const client = createQueuedClient(port, 'token=valid-token-tenant-1');
+    trackClient(client.ws);
+    await client.nextMessage(); // welcome
 
-    ws.send(JSON.stringify({ action: 'subscribe_execution' }));
-    const errorMsg = await waitForMessage<{ type: string; message: string }>(ws);
+    client.ws.send(JSON.stringify({ action: 'subscribe_execution' }));
+    const errorMsg = await client.nextMessage<{ type: string; message: string }>();
     expect(errorMsg.type).toBe('error');
     expect(errorMsg.message).toBe('Missing executionId');
   });
@@ -285,21 +313,21 @@ describe('WebSocket Server', () => {
   // ── Cleanup ──────────────────────────────────────────────────────────
 
   it('cleans up subscriptions when client disconnects', async () => {
-    const ws = trackClient(createClient(port, 'token=valid-token-tenant-1'));
-    await waitForOpen(ws);
-    await waitForMessage(ws); // welcome
+    const client = createQueuedClient(port, 'token=valid-token-tenant-1');
+    trackClient(client.ws);
+    await client.nextMessage(); // welcome
 
-    ws.send(JSON.stringify({ action: 'subscribe_execution', executionId: 'exec-1' }));
-    await waitForMessage(ws); // subscribed ack
+    client.ws.send(JSON.stringify({ action: 'subscribe_execution', executionId: 'exec-1' }));
+    await client.nextMessage(); // subscribed ack
 
-    ws.send(JSON.stringify({ action: 'subscribe_tenant' }));
-    await waitForMessage(ws); // subscribed_tenant ack
+    client.ws.send(JSON.stringify({ action: 'subscribe_tenant' }));
+    await client.nextMessage(); // subscribed_tenant ack
 
     expect(monitor.getSubscriberCount()).toBe(2);
 
     // Close the client
-    ws.close();
-    await waitForClose(ws);
+    client.ws.close();
+    await client.waitClose();
 
     // Give a tick for the server-side 'close' handler to fire
     await new Promise((r) => setTimeout(r, 50));

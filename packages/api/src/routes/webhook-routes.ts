@@ -5,7 +5,7 @@ export function webhookRoutes(webhookRouter: WebhookRouter) {
   return async function (app: FastifyInstance): Promise<void> {
     app.all('/webhook/:tenantId/*', async (request: FastifyRequest, reply: FastifyReply) => {
       const { tenantId } = request.params as { tenantId: string };
-      const webhookPath = (request.params as Record<string, string>)['*'];
+      const webhookPath = (request.params as Record<string, string | undefined>)['*'] ?? '';
 
       const result = await webhookRouter.handleWebhook({
         tenantId,

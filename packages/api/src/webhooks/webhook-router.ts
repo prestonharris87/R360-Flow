@@ -1,5 +1,4 @@
 import crypto from 'node:crypto';
-import type { WebhookRegistration } from './webhook-registry.js';
 import { WebhookRegistry } from './webhook-registry.js';
 
 export interface WebhookRequest {
@@ -54,7 +53,9 @@ export class WebhookRouter {
       const providedSig = request.headers['x-webhook-signature'];
       const rawBody = request.rawBody || JSON.stringify(request.body);
       const expectedSig = WebhookRouter.computeSignature(rawBody, registration.signatureSecret);
-      if (!providedSig || !crypto.timingSafeEqual(Buffer.from(providedSig), Buffer.from(expectedSig))) {
+      const providedBuf = Buffer.from(providedSig ?? '');
+      const expectedBuf = Buffer.from(expectedSig);
+      if (!providedSig || providedBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(providedBuf, expectedBuf)) {
         return { status: 'unauthorized', message: 'Invalid webhook signature' };
       }
     }

@@ -93,7 +93,7 @@ function handleClientMessage(
 ): void {
   const sendEvent = (event: ExecutionEvent) => {
     if (client.ws.readyState === WebSocket.OPEN) {
-      client.ws.send(JSON.stringify({ type: 'execution_event', ...event }));
+      client.ws.send(JSON.stringify({ type: 'execution_event', event }));
     }
   };
 
