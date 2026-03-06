@@ -6,3 +6,7 @@ export type { CreateHooksParams } from './lifecycle-hooks.js';
 export { TenantCredentialsHelper } from './credentials-helper.js';
 export type { CredentialLookupFn } from './credentials-helper.js';
 export { R360NodeTypes } from './node-types.js';
+export { convertToPaletteItem, convertN8nPropertiesToSchema, buildNodePalette } from './node-palette.js';
+export type { N8nPaletteItem, NodeSchema, NodePropertiesSchema, FieldSchema, PaletteFilterOptions } from './node-palette.js';
+export { ExecutionService } from './execution-service.js';
+export type { ExecuteWorkflowParams } from './execution-service.js';

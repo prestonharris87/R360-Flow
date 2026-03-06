@@ -7,6 +7,7 @@ import { healthRoutes } from './routes/health.js';
 import { workflowRoutes } from './routes/workflows.js';
 import { credentialRoutes } from './routes/credentials.js';
 import { executionRoutes } from './routes/executions.js';
+import { nodeRoutes } from './routes/nodes.js';
 import { authMiddleware } from './middleware/auth.js';
 
 export async function buildApp(
@@ -57,6 +58,7 @@ export async function buildApp(
   await app.register(workflowRoutes);
   await app.register(credentialRoutes);
   await app.register(executionRoutes);
+  await app.register(nodeRoutes);
 
   return app;
 }
