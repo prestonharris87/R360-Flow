@@ -3,70 +3,70 @@ import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import { randomUUID } from 'node:crypto';
-import { healthRoutes } from './routes/health.js';
-import { workflowRoutes } from './routes/workflows.js';
-import { credentialRoutes } from './routes/credentials.js';
-import { executionRoutes } from './routes/executions.js';
-import { nodeRoutes } from './routes/nodes.js';
-import { authMiddleware } from './middleware/auth.js';
-import { ensureBootstrapped } from './services/execution-bridge.js';
+import { healthRoutes } from './routes/health';
+import { workflowRoutes } from './routes/workflows';
+import { credentialRoutes } from './routes/credentials';
+import { executionRoutes } from './routes/executions';
+import { nodeRoutes } from './routes/nodes';
+import { authMiddleware } from './middleware/auth';
+import { ensureBootstrapped } from './services/execution-bridge';
 
 // Phase 4: Webhook components
-import { WebhookRegistry } from './webhooks/webhook-registry.js';
-import { WebhookRouter } from './webhooks/webhook-router.js';
-import type { ExecutionQueueInterface } from './webhooks/webhook-router.js';
-import { webhookRoutes } from './routes/webhook-routes.js';
+import { WebhookRegistry } from './webhooks/webhook-registry';
+import { WebhookRouter } from './webhooks/webhook-router';
+import type { ExecutionQueueInterface } from './webhooks/webhook-router';
+import { webhookRoutes } from './routes/webhook-routes';
 
 // Phase 4: Scheduler
-import { SchedulerService } from './scheduler/scheduler-service.js';
-import type { SchedulerDb, SchedulerExecutionQueue } from './scheduler/scheduler-service.js';
+import { SchedulerService } from './scheduler/scheduler-service';
+import type { SchedulerDb, SchedulerExecutionQueue } from './scheduler/scheduler-service';
 
 // Phase 4: Real-time WebSocket
-import { ExecutionMonitor } from './realtime/execution-monitor.js';
-import { createExecutionWSServer } from './realtime/ws-server.js';
-import type { WSAuthenticator } from './realtime/ws-server.js';
+import { ExecutionMonitor } from './realtime/execution-monitor';
+import { createExecutionWSServer } from './realtime/ws-server';
+import type { WSAuthenticator } from './realtime/ws-server';
 
 // Phase 5: Security middleware
-import { securityMiddleware } from './middleware/security.js';
+import { securityMiddleware } from './middleware/security';
 
 // Phase 5: Billing
-import { billingRoutes } from './routes/billing-routes.js';
-import { StripeWebhookHandler } from './billing/stripe-webhook-handler.js';
-import type { TenantServiceInterface } from './billing/stripe-webhook-handler.js';
-import { UsageTracker } from './billing/usage-tracker.js';
-import type { UsageStore, UsageRecord } from './billing/usage-tracker.js';
-import { PlanLimitsEnforcer } from './billing/plan-limits.js';
+import { billingRoutes } from './routes/billing-routes';
+import { StripeWebhookHandler } from './billing/stripe-webhook-handler';
+import type { TenantServiceInterface } from './billing/stripe-webhook-handler';
+import { UsageTracker } from './billing/usage-tracker';
+import type { UsageStore, UsageRecord } from './billing/usage-tracker';
+import { PlanLimitsEnforcer } from './billing/plan-limits';
 
 // Phase 5: Admin
-import { adminRoutes } from './routes/admin-routes.js';
-import { TenantService } from './services/tenant-service.js';
-import type { TenantDb, TenantRecord } from './services/tenant-service.js';
+import { adminRoutes } from './routes/admin-routes';
+import { TenantService } from './services/tenant-service';
+import type { TenantDb, TenantRecord } from './services/tenant-service';
 
 // Phase 5: Audit
-import { AuditLogger } from './audit/audit-logger.js';
-import type { AuditStore, AuditEvent, SecurityEvent, AuditQuery } from './audit/audit-logger.js';
+import { AuditLogger } from './audit/audit-logger';
+import type { AuditStore, AuditEvent, SecurityEvent, AuditQuery } from './audit/audit-logger';
 
 // Phase 6: Templates
-import { TemplateService } from './services/template-service.js';
-import type { TemplateStore, TemplateRecord } from './services/template-service.js';
-import { templateRoutes } from './routes/template-routes.js';
+import { TemplateService } from './services/template-service';
+import type { TemplateStore, TemplateRecord } from './services/template-service';
+import { templateRoutes } from './routes/template-routes';
 
 // Phase 6: White-label theming
-import { ThemeService } from './services/theme-service.js';
-import type { ThemeStore, ThemeConfig } from './services/theme-service.js';
-import { themeRoutes } from './routes/theme-routes.js';
+import { ThemeService } from './services/theme-service';
+import type { ThemeStore, ThemeConfig } from './services/theme-service';
+import { themeRoutes } from './routes/theme-routes';
 
 // Phase 6: API Documentation
-import { docsRoutes } from './routes/docs-routes.js';
+import { docsRoutes } from './routes/docs-routes';
 
 // Phase 6: Health, Error Handler, Version, Monitoring
-import { HealthService } from './services/health-service.js';
-import { healthRoutes as healthRoutesV2 } from './routes/health-routes.js';
-import { ErrorHandlerService } from './services/error-handler.js';
-import type { ErrorStore, ExecutionError } from './services/error-handler.js';
-import { VersionService } from './services/version-service.js';
-import type { VersionStore, WorkflowVersion } from './services/version-service.js';
-import { MonitoringService } from './services/monitoring-service.js';
+import { HealthService } from './services/health-service';
+import { healthRoutes as healthRoutesV2 } from './routes/health-routes';
+import { ErrorHandlerService } from './services/error-handler';
+import type { ErrorStore, ExecutionError } from './services/error-handler';
+import { VersionService } from './services/version-service';
+import type { VersionStore, WorkflowVersion } from './services/version-service';
+import { MonitoringService } from './services/monitoring-service';
 
 // ---------------------------------------------------------------------------
 // In-memory stub implementations (replaced with real DB implementations later)
@@ -467,9 +467,36 @@ export async function buildApp(
     webhookHandler: stripeWebhookHandler,
   });
 
+  // --- Auth login endpoint (dev mode returns a dev token, production would validate credentials) ---
+    app.post('/api/auth/login', async (request, reply) => {
+      const { email } = request.body as { email?: string; password?: string };
+      if (!email) {
+        return reply.status(400).send({ error: 'Bad Request', message: 'Email is required' });
+      }
+
+      if (process.env.NODE_ENV === 'production') {
+        // In production, integrate with Clerk/Auth0/Supabase for real auth
+        return reply.status(501).send({ error: 'Not Implemented', message: 'Production auth not configured' });
+      }
+
+      // Dev mode: return a dev token for any email
+      return reply.send({
+        token: 'dev-token-' + Date.now(),
+        user: {
+          id: '00000000-0000-0000-0000-000000000002',
+          email,
+          name: email.split('@')[0],
+          role: 'owner',
+          tenantId: '00000000-0000-0000-0000-000000000001',
+        },
+      });
+    });
+
   // --- Auth hook for /api/* routes (excluding billing webhook and admin which have own auth) ---
 
   app.addHook('onRequest', async (request, reply) => {
+    // Skip auth for auth endpoints (login, etc.)
+    if (request.url.startsWith('/api/auth/')) return;
     // Skip auth for billing webhook (Stripe uses its own signature verification)
     if (request.url.startsWith('/api/billing/webhook')) return;
     // Skip auth for admin routes (they use API key auth)
@@ -479,6 +506,8 @@ export async function buildApp(
     // Skip auth for health/metrics endpoints (public)
     if (request.url.startsWith('/api/health')) return;
     if (request.url.startsWith('/api/metrics')) return;
+    // Skip auth for node palette (public, stateless, shared across tenants)
+    if (request.url.startsWith('/api/nodes')) return;
 
     if (request.url.startsWith('/api/')) {
       await authMiddleware(request, reply);
@@ -559,7 +588,7 @@ export async function start(): Promise<FastifyInstance> {
 
 // Start server if this is the main module
 const isMain =
-  import.meta.url === `file://${process.argv[1]}` ||
+  require.main === module ||
   process.argv[1]?.endsWith('/server.js') ||
   process.argv[1]?.endsWith('/server.ts');
 

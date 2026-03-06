@@ -29,6 +29,17 @@ export async function authMiddleware(
   }
 
   const token = authHeader.slice(7);
+
+    // Dev-mode bypass: accept dev tokens without JWT verification
+    if (process.env.NODE_ENV !== 'production' && token.startsWith('dev-token-')) {
+      request.tenantContext = {
+        tenantId: '00000000-0000-0000-0000-000000000001' as TenantContext['tenantId'],
+        userId: '00000000-0000-0000-0000-000000000002' as TenantContext['userId'],
+        role: 'owner' as UserRole,
+      };
+      return;
+    }
+
   try {
     const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
     const { payload } = await jose.jwtVerify(token, secret, {
