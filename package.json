@@ -1,0 +1,26 @@
+{
+  "name": "r360-flow",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "test:unit": "pnpm -r --filter='./packages/*' test:unit",
+    "test:integration": "pnpm -r --filter='./packages/*' test:integration",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "dev": "pnpm --filter @r360/api dev",
+    "db:generate": "pnpm --filter @r360/db generate",
+    "db:migrate": "pnpm --filter @r360/db migrate",
+    "db:studio": "pnpm --filter @r360/db studio"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0",
+    "eslint": "^9.0.0",
+    "@eslint/js": "^9.0.0",
+    "typescript-eslint": "^8.0.0",
+    "prettier": "^3.3.0"
+  }
+}

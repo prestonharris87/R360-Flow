@@ -3,6 +3,7 @@ dist/
 build/
 .env
 .env.*
+!.env.example
 *.local
 n8n/
 workflowbuilder/
@@ -12,3 +13,5 @@ workflowbuilder/
 *.log
 coverage/
 .turbo/
+drizzle/
+*.tsbuildinfo
