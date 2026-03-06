@@ -4,7 +4,7 @@ import type {
   INodeType,
   INodeTypeDescription,
 } from 'n8n-workflow';
-import { NodeConnectionType } from 'n8n-workflow';
+import { NodeConnectionTypes } from 'n8n-workflow';
 
 export class AssignInspection implements INodeType {
   description: INodeTypeDescription = {
@@ -14,8 +14,8 @@ export class AssignInspection implements INodeType {
     version: 1,
     description: 'Assign an inspection to a user or team in Record360',
     defaults: { name: 'Assign Inspection' },
-    inputs: [NodeConnectionType.Main],
-    outputs: [NodeConnectionType.Main],
+    inputs: [NodeConnectionTypes.Main],
+    outputs: [NodeConnectionTypes.Main],
     properties: [
       {
         displayName: 'Inspection ID',

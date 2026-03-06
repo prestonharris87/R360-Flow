@@ -12,7 +12,7 @@ import {
   convertN8nPropertiesToSchema,
   buildNodePalette,
 } from '../node-palette.js';
-import type { N8nPaletteItem } from '../node-palette.js';
+// N8nPaletteItem type available from node-palette.js if needed
 
 const TEST_ENCRYPTION_KEY = 'test-key-32-bytes-long-xxxxxxxx';
 
@@ -222,9 +222,9 @@ describe('convertN8nPropertiesToSchema', () => {
     ] as any);
 
     expect(schema.properties.name).toBeDefined();
-    expect(schema.properties.name.type).toBe('string');
-    expect(schema.properties.name.label).toBe('Name');
-    expect(schema.properties.name.placeholder).toBe('Enter name');
+    expect(schema.properties.name!.type).toBe('string');
+    expect(schema.properties.name!.label).toBe('Name');
+    expect(schema.properties.name!.placeholder).toBe('Enter name');
   });
 
   it('converts number properties', () => {
@@ -239,8 +239,8 @@ describe('convertN8nPropertiesToSchema', () => {
     ] as any);
 
     expect(schema.properties.count).toBeDefined();
-    expect(schema.properties.count.type).toBe('number');
-    expect(schema.properties.count.label).toBe('Count');
+    expect(schema.properties.count!.type).toBe('number');
+    expect(schema.properties.count!.label).toBe('Count');
   });
 
   it('converts boolean properties', () => {
@@ -255,8 +255,8 @@ describe('convertN8nPropertiesToSchema', () => {
     ] as any);
 
     expect(schema.properties.active).toBeDefined();
-    expect(schema.properties.active.type).toBe('boolean');
-    expect(schema.properties.active.label).toBe('Active');
+    expect(schema.properties.active!.type).toBe('boolean');
+    expect(schema.properties.active!.label).toBe('Active');
   });
 
   it('converts options properties with label/value', () => {
@@ -274,9 +274,9 @@ describe('convertN8nPropertiesToSchema', () => {
     ] as any);
 
     expect(schema.properties.method).toBeDefined();
-    expect(schema.properties.method.type).toBe('string');
-    expect(schema.properties.method.options).toHaveLength(2);
-    expect(schema.properties.method.options![0]).toEqual({
+    expect(schema.properties.method!.type).toBe('string');
+    expect(schema.properties.method!.options).toHaveLength(2);
+    expect(schema.properties.method!.options![0]).toEqual({
       label: 'GET',
       value: 'GET',
     });
@@ -294,7 +294,7 @@ describe('convertN8nPropertiesToSchema', () => {
     ] as any);
 
     expect(schema.properties.options).toBeDefined();
-    expect(schema.properties.options.type).toBe('object');
+    expect(schema.properties.options!.type).toBe('object');
   });
 
   it('converts fixedCollection properties to object type', () => {
@@ -309,15 +309,15 @@ describe('convertN8nPropertiesToSchema', () => {
     ] as any);
 
     expect(schema.properties.items).toBeDefined();
-    expect(schema.properties.items.type).toBe('object');
+    expect(schema.properties.items!.type).toBe('object');
   });
 
   it('always includes label and description in schema', () => {
     const schema = convertN8nPropertiesToSchema([]);
     expect(schema.properties.label).toBeDefined();
-    expect(schema.properties.label.type).toBe('string');
+    expect(schema.properties.label!.type).toBe('string');
     expect(schema.properties.description).toBeDefined();
-    expect(schema.properties.description.type).toBe('string');
+    expect(schema.properties.description!.type).toBe('string');
   });
 
   it('falls back to string for unknown property types', () => {
@@ -331,7 +331,7 @@ describe('convertN8nPropertiesToSchema', () => {
     ] as any);
 
     expect(schema.properties.custom).toBeDefined();
-    expect(schema.properties.custom.type).toBe('string');
+    expect(schema.properties.custom!.type).toBe('string');
   });
 });
 
@@ -372,7 +372,7 @@ describe('buildNodePalette (integration with n8n-nodes-base)', () => {
   it('includes well-known nodes like HTTP Request', () => {
     const palette = buildNodePalette(nodeTypes);
     const httpNode = palette.find(
-      (item) => item.type === 'n8n-nodes-base.httpRequest'
+      (item) => item.type === 'httpRequest'
     );
 
     expect(httpNode).toBeDefined();
@@ -423,7 +423,6 @@ describe('buildNodePalette (integration with n8n-nodes-base)', () => {
   });
 
   it('filters by both category and search', () => {
-    const allItems = buildNodePalette(nodeTypes);
     // Use a broad search to ensure we get results
     const filtered = buildNodePalette(nodeTypes, {
       category: 'Development',
@@ -442,7 +441,7 @@ describe('buildNodePalette (integration with n8n-nodes-base)', () => {
 
   it('each palette item has the expected shape', () => {
     const palette = buildNodePalette(nodeTypes);
-    const sampleItem = palette[0];
+    const sampleItem = palette[0]!;
 
     expect(sampleItem).toHaveProperty('type');
     expect(sampleItem).toHaveProperty('label');

@@ -4,7 +4,7 @@ import type {
   INodeType,
   INodeTypeDescription,
 } from 'n8n-workflow';
-import { NodeConnectionType } from 'n8n-workflow';
+import { NodeConnectionTypes } from 'n8n-workflow';
 
 export class DocumentAction implements INodeType {
   description: INodeTypeDescription = {
@@ -14,8 +14,8 @@ export class DocumentAction implements INodeType {
     version: 1,
     description: 'Attach a document (photo, video, signature, or note) to an inspection in Record360',
     defaults: { name: 'Document Action' },
-    inputs: [NodeConnectionType.Main],
-    outputs: [NodeConnectionType.Main],
+    inputs: [NodeConnectionTypes.Main],
+    outputs: [NodeConnectionTypes.Main],
     properties: [
       {
         displayName: 'Document Type',

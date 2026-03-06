@@ -4,7 +4,7 @@ import type {
   INodeType,
   INodeTypeDescription,
 } from 'n8n-workflow';
-import { NodeConnectionType } from 'n8n-workflow';
+import { NodeConnectionTypes } from 'n8n-workflow';
 
 export class RecordAction implements INodeType {
   description: INodeTypeDescription = {
@@ -14,8 +14,8 @@ export class RecordAction implements INodeType {
     version: 1,
     description: 'Create, update, or archive a record in Record360',
     defaults: { name: 'Record Action' },
-    inputs: [NodeConnectionType.Main],
-    outputs: [NodeConnectionType.Main],
+    inputs: [NodeConnectionTypes.Main],
+    outputs: [NodeConnectionTypes.Main],
     properties: [
       {
         displayName: 'Action Type',

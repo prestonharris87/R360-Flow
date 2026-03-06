@@ -188,7 +188,7 @@ describe('TenantCredentialsHelper', () => {
           tls: true,
         },
         tags: ['production', 'primary'],
-        nullValue: null,
+        emptyValue: '',
       };
 
       const encrypted = TenantCredentialsHelper.encryptCredentialData(

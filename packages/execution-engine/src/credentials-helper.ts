@@ -105,7 +105,6 @@ class TenantCredentials extends ICredentials {
  * Injected via IWorkflowExecuteAdditionalData.credentialsHelper
  */
 export class TenantCredentialsHelper extends ICredentialsHelper {
-  private readonly tenantKey: Buffer;
   private readonly credentialLookup: CredentialLookupFn | null;
 
   constructor(
@@ -114,10 +113,6 @@ export class TenantCredentialsHelper extends ICredentialsHelper {
     credentialLookup?: CredentialLookupFn,
   ) {
     super();
-    this.tenantKey = TenantCredentialsHelper.deriveTenantKey(
-      tenantId,
-      masterKey,
-    );
     this.credentialLookup = credentialLookup ?? null;
   }
 
@@ -250,7 +245,7 @@ export class TenantCredentialsHelper extends ICredentialsHelper {
    */
   async getCredentials(
     nodeCredentials: INodeCredentialsDetails,
-    type: string,
+    _type: string,
   ): Promise<ICredentials> {
     if (!this.credentialLookup) {
       // No credential lookup function provided -- throw a descriptive error.
@@ -292,7 +287,7 @@ export class TenantCredentialsHelper extends ICredentialsHelper {
   async getDecrypted(
     _additionalData: IWorkflowExecuteAdditionalData,
     nodeCredentials: INodeCredentialsDetails,
-    type: string,
+    _type: string,
     _mode: WorkflowExecuteMode,
     _executeData?: IExecuteData,
     _raw?: boolean,

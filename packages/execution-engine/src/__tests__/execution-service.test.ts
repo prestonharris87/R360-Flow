@@ -113,12 +113,12 @@ describe('ExecutionService', () => {
     // Verify the Set node output contains our greeting
     const setNodeData = result.data.resultData.runData['Set Data'];
     expect(setNodeData).toBeDefined();
-    expect(setNodeData.length).toBeGreaterThan(0);
+    expect(setNodeData!.length).toBeGreaterThan(0);
 
-    const outputItems = setNodeData[0].data?.main?.[0];
+    const outputItems = setNodeData![0]!.data?.main?.[0];
     expect(outputItems).toBeDefined();
     expect(outputItems!.length).toBeGreaterThan(0);
-    expect(outputItems![0].json.greeting).toBe('Hello from R360!');
+    expect(outputItems![0]!.json.greeting).toBe('Hello from R360!');
   }, 30000); // 30s timeout for execution
 
   it('records execution status via lifecycle hooks', async () => {
@@ -258,7 +258,6 @@ describe('ExecutionService', () => {
   });
 
   it('includes tenant ID in webhook URLs', async () => {
-    const hookEvents: Array<{ event: string; data: unknown }> = [];
     const tenantId = 'tenant-webhook-test';
 
     // We verify the webhook URLs are set correctly by inspecting the

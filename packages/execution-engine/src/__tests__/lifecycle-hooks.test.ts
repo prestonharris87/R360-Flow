@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { IRun, IDataObject, IRunExecutionData, ITaskData } from 'n8n-workflow';
+import type { IRun, IRunExecutionData, ITaskData } from 'n8n-workflow';
 import { ExecutionLifecycleHooks } from 'n8n-core';
 import type { IWorkflowBase, Workflow } from 'n8n-workflow';
 
@@ -27,6 +27,10 @@ describe('createTenantLifecycleHooks', () => {
     connections: {},
     active: false,
     settings: {},
+    isArchived: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    activeVersionId: null,
   };
 
   beforeEach(() => {
@@ -34,7 +38,7 @@ describe('createTenantLifecycleHooks', () => {
   });
 
   it('creates hooks with all required handler types', async () => {
-    const { createTenantLifecycleHooks } = await import('../lifecycle-hooks');
+    const { createTenantLifecycleHooks } = await import('../lifecycle-hooks.js');
 
     const hooks = createTenantLifecycleHooks({
       tenantId,
@@ -51,7 +55,7 @@ describe('createTenantLifecycleHooks', () => {
   });
 
   it('workflowExecuteBefore handler writes execution start to DB', async () => {
-    const { createTenantLifecycleHooks } = await import('../lifecycle-hooks');
+    const { createTenantLifecycleHooks } = await import('../lifecycle-hooks.js');
 
     const hooks = createTenantLifecycleHooks({
       tenantId,
@@ -74,7 +78,7 @@ describe('createTenantLifecycleHooks', () => {
   });
 
   it('workflowExecuteAfter handler writes completion to DB', async () => {
-    const { createTenantLifecycleHooks } = await import('../lifecycle-hooks');
+    const { createTenantLifecycleHooks } = await import('../lifecycle-hooks.js');
 
     const hooks = createTenantLifecycleHooks({
       tenantId,
@@ -103,7 +107,7 @@ describe('createTenantLifecycleHooks', () => {
   });
 
   it('nodeExecuteAfter handler writes step data to DB', async () => {
-    const { createTenantLifecycleHooks } = await import('../lifecycle-hooks');
+    const { createTenantLifecycleHooks } = await import('../lifecycle-hooks.js');
 
     const hooks = createTenantLifecycleHooks({
       tenantId,
@@ -134,7 +138,7 @@ describe('createTenantLifecycleHooks', () => {
   });
 
   it('all hooks include tenant_id in DB writes', async () => {
-    const { createTenantLifecycleHooks } = await import('../lifecycle-hooks');
+    const { createTenantLifecycleHooks } = await import('../lifecycle-hooks.js');
 
     const hooks = createTenantLifecycleHooks({
       tenantId: 'tenant-isolation-check',
@@ -145,12 +149,12 @@ describe('createTenantLifecycleHooks', () => {
 
     await hooks.runHook('workflowExecuteBefore', [{ id: 'wf-1' } as Workflow]);
 
-    const createCall = mockExecutionStore.create.mock.calls[0][0];
+    const createCall = mockExecutionStore.create.mock.calls[0]![0];
     expect(createCall.tenant_id).toBe('tenant-isolation-check');
   });
 
   it('workflowExecuteAfter marks failed executions as error', async () => {
-    const { createTenantLifecycleHooks } = await import('../lifecycle-hooks');
+    const { createTenantLifecycleHooks } = await import('../lifecycle-hooks.js');
 
     const hooks = createTenantLifecycleHooks({
       tenantId,
@@ -186,7 +190,7 @@ describe('createTenantLifecycleHooks', () => {
   });
 
   it('nodeExecuteBefore handler creates step record with running status', async () => {
-    const { createTenantLifecycleHooks } = await import('../lifecycle-hooks');
+    const { createTenantLifecycleHooks } = await import('../lifecycle-hooks.js');
 
     const hooks = createTenantLifecycleHooks({
       tenantId,

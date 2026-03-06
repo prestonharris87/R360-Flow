@@ -100,7 +100,7 @@ export async function executionRoutes(app: FastifyInstance): Promise<void> {
       }
 
       // Create pending execution record
-      const [execution] = await db
+      const rows = await db
         .insert(executions)
         .values({
           tenantId,
@@ -110,6 +110,8 @@ export async function executionRoutes(app: FastifyInstance): Promise<void> {
           contextJson: parsed.data.inputData ?? {},
         })
         .returning();
+
+      const execution = rows[0]!;
 
       // Fire-and-forget: run execution asynchronously in the background.
       // The client gets an immediate 202 response with the execution ID,

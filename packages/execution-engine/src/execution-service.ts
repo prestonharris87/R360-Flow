@@ -7,15 +7,14 @@ import {
   type IRun,
   type IWorkflowExecuteAdditionalData,
   type IWorkflowSettings,
-  type IDataObject,
   type WorkflowExecuteMode,
   type IRunExecutionData,
   type IWorkflowBase,
   type ExecuteWorkflowOptions,
   type IExecuteWorkflowInfo,
-  type AiEvent,
+  type ExecuteWorkflowData,
 } from 'n8n-workflow';
-import { WorkflowExecute, ExecutionLifecycleHooks } from 'n8n-core';
+import { WorkflowExecute, ExecutionLifecycleHooks, ExternalSecretsProxy } from 'n8n-core';
 
 import type { R360NodeTypes } from './node-types.js';
 import { TenantCredentialsHelper } from './credentials-helper.js';
@@ -97,6 +96,10 @@ export class ExecutionService {
       connections: workflowJson.connections,
       active: workflowJson.active,
       settings: workflowJson.settings || {},
+      isArchived: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      activeVersionId: null,
     };
 
     const hooks = new ExecutionLifecycleHooks(mode, executionId, workflowData);
@@ -161,12 +164,15 @@ export class ExecutionService {
       // Tenant-scoped credentials helper
       credentialsHelper,
 
+      // External secrets proxy (required by n8n-core augmented interface)
+      externalSecretsProxy: new ExternalSecretsProxy(),
+
       // Sub-workflow execution (for Execute Workflow nodes)
       executeWorkflow: async (
         _workflowInfo: IExecuteWorkflowInfo,
         _additionalData: IWorkflowExecuteAdditionalData,
         _options: ExecuteWorkflowOptions,
-      ) => {
+      ): Promise<ExecuteWorkflowData> => {
         // TODO: Implement sub-workflow execution with same tenant context
         throw new ApplicationError('Sub-workflow execution not yet implemented');
       },
@@ -193,7 +199,7 @@ export class ExecutionService {
       variables: {},
 
       // AI event logging
-      logAiEvent: (_eventName: AiEvent, _payload: { msg: string; workflowName: string; executionId: string; nodeName: string; workflowId?: string; nodeType?: string }) => {
+      logAiEvent: (_eventName, _payload) => {
         // TODO: Implement AI event logging
       },
 

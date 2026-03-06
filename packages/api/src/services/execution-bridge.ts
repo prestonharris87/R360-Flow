@@ -198,7 +198,7 @@ export async function executeWorkflowForTenant(
  *   (workflow-level status is handled in the parent function)
  */
 async function handleHookEvent(
-  tenantId: string,
+  _tenantId: string,
   executionId: string,
   event: string,
   data?: unknown

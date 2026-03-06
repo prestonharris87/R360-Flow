@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { NodeConnectionType } from 'n8n-workflow';
+import { NodeConnectionTypes } from 'n8n-workflow';
 
 describe('AssignInspection node', () => {
   it('has a valid INodeTypeDescription', async () => {
@@ -16,12 +16,12 @@ describe('AssignInspection node', () => {
     expect(node.description.properties.length).toBeGreaterThan(0);
   });
 
-  it('uses NodeConnectionType.Main for inputs and outputs', async () => {
+  it('uses NodeConnectionTypes.Main for inputs and outputs', async () => {
     const { AssignInspection } = await import('../nodes/AssignInspection.js');
     const node = new AssignInspection();
 
-    expect(node.description.inputs).toContain(NodeConnectionType.Main);
-    expect(node.description.outputs).toContain(NodeConnectionType.Main);
+    expect(node.description.inputs).toContain(NodeConnectionTypes.Main);
+    expect(node.description.outputs).toContain(NodeConnectionTypes.Main);
   });
 
   it('has required properties with correct types', async () => {
