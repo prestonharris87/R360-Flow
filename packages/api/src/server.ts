@@ -6,6 +6,7 @@ import { randomUUID } from 'node:crypto';
 import { healthRoutes } from './routes/health';
 import { workflowRoutes } from './routes/workflows';
 import { credentialRoutes } from './routes/credentials';
+import { credentialTypeRoutes } from './routes/credential-types';
 import { executionRoutes } from './routes/executions';
 import { nodeRoutes } from './routes/nodes';
 import { authMiddleware } from './middleware/auth';
@@ -58,6 +59,12 @@ import { themeRoutes } from './routes/theme-routes';
 
 // Phase 6: API Documentation
 import { docsRoutes } from './routes/docs-routes';
+
+// n8n-compatible API facade (for n8n editor-ui integration)
+import { n8nCompatRoutes } from './routes/n8n-compat';
+
+// Icon-serving routes (serves n8n node icons from installed npm packages)
+import { iconRoutes } from './routes/icon-routes';
 
 // Phase 6: Health, Error Handler, Version, Monitoring
 import { HealthService } from './services/health-service';
@@ -449,6 +456,12 @@ export async function buildApp(
   // --- Phase 6: API Documentation routes (public, no auth) ---
   await app.register(docsRoutes);
 
+  // --- n8n-compatible API facade (public, no auth -- editor uses previewMode) ---
+  await app.register(n8nCompatRoutes);
+
+  // --- Icon-serving routes (public, no auth -- static assets) ---
+  await app.register(iconRoutes);
+
   // --- Phase 4: Webhook routes (public -- external callers use signature verification, not JWT) ---
 
   const webhookRegistry = new WebhookRegistry();
@@ -508,6 +521,10 @@ export async function buildApp(
     if (request.url.startsWith('/api/metrics')) return;
     // Skip auth for node palette (public, stateless, shared across tenants)
     if (request.url.startsWith('/api/nodes')) return;
+    // Skip auth for n8n-compat routes (editor uses previewMode, no auth)
+    if (request.url.startsWith('/api/n8n-compat')) return;
+    // Skip auth for icon routes (static assets, public)
+    if (request.url.startsWith('/api/icons')) return;
 
     if (request.url.startsWith('/api/')) {
       await authMiddleware(request, reply);
@@ -518,6 +535,7 @@ export async function buildApp(
 
   await app.register(workflowRoutes);
   await app.register(credentialRoutes);
+  await app.register(credentialTypeRoutes);
   await app.register(executionRoutes);
   await app.register(nodeRoutes);
 

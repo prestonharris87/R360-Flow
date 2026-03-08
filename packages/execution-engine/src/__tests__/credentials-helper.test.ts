@@ -8,7 +8,7 @@ import type {
 import {
   TenantCredentialsHelper,
   type CredentialLookupFn,
-} from '../credentials-helper.js';
+} from '../credentials-helper';
 
 describe('TenantCredentialsHelper', () => {
   const tenantId = 'tenant-001';

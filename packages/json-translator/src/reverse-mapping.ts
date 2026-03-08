@@ -1,6 +1,6 @@
-import type { IConnections, INode, NodeInputConnections } from './types.js';
-import type { WorkflowBuilderEdge, WorkflowBuilderNode } from './wb-types.js';
-import { mapN8nParametersToWBProperties } from './parameter-mapping.js';
+import type { IConnections, INode, NodeInputConnections } from './types';
+import type { WorkflowBuilderEdge, WorkflowBuilderNode } from './wb-types';
+import { mapN8nParametersToWBProperties } from './parameter-mapping';
 
 /**
  * Node types that represent trigger/start nodes in the WB visual editor.
@@ -40,7 +40,26 @@ export const NODE_TYPE_ICONS: Record<string, string> = {
   'n8n-nodes-base.slack': 'MessageSquare',
   'n8n-nodes-base.gmail': 'Mail',
   'n8n-nodes-base.googleSheets': 'Table',
+  'n8n-nodes-base.airtop': 'Globe',
+  'n8n-nodes-base.airtopTool': 'Globe',
+  '@n8n/n8n-nodes-langchain.agent': 'Bot',
+  '@n8n/n8n-nodes-langchain.lmChatOpenAi': 'Bot',
 };
+
+/**
+ * Strip the n8n package prefix from a node type to get the short name
+ * used by the palette.
+ *
+ * Examples:
+ * - "n8n-nodes-base.airtop" -> "airtop"
+ * - "@n8n/n8n-nodes-langchain.agent" -> "agent"
+ * - "airtop" -> "airtop" (already short)
+ */
+export function stripNodeTypePrefix(nodeType: string): string {
+  const dotIndex = nodeType.lastIndexOf('.');
+  if (dotIndex === -1) return nodeType;
+  return nodeType.substring(dotIndex + 1);
+}
 
 /**
  * Check whether an n8n node type represents a trigger node.
@@ -79,7 +98,7 @@ export function resolveWBNodeType(n8nType: string): string {
  * - The WB node type is determined from the n8n type (trigger/decision/regular)
  * - Icon is resolved from NODE_TYPE_ICONS with 'Box' fallback
  * - n8n parameters are mapped to WB properties via mapN8nParametersToWBProperties
- * - typeVersion is carried into properties when != 1
+ * - typeVersion is always carried into properties
  * - Meta fields (disabled, continueOnFail, onError, credentials) are carried as properties
  */
 export function mapN8nToWBNode(n8nNode: INode): WorkflowBuilderNode {
@@ -89,10 +108,8 @@ export function mapN8nToWBNode(n8nNode: INode): WorkflowBuilderNode {
     n8nNode.notes,
   );
 
-  // Carry over typeVersion so round-trip preserves it (omit when default value of 1)
-  if (n8nNode.typeVersion !== 1) {
-    properties.typeVersion = n8nNode.typeVersion;
-  }
+  // Carry over typeVersion so round-trip always preserves it
+  properties.typeVersion = n8nNode.typeVersion;
 
   // Carry over meta fields that live on INode top-level
   if (n8nNode.disabled) properties.disabled = true;
@@ -104,12 +121,16 @@ export function mapN8nToWBNode(n8nNode: INode): WorkflowBuilderNode {
   if (typeof n8nNode.waitBetweenTries === 'number') properties.waitBetweenTries = n8nNode.waitBetweenTries;
   if (n8nNode.notesInFlow) properties.notesInFlow = true;
 
+  // Use short name (no package prefix) for data.type since the palette
+  // registers nodes by short name (e.g., "airtop" not "n8n-nodes-base.airtop")
+  const shortType = stripNodeTypePrefix(n8nNode.type);
+
   return {
     id: n8nNode.id,
     type: resolveWBNodeType(n8nNode.type),
     position: { x: n8nNode.position[0], y: n8nNode.position[1] },
     data: {
-      type: n8nNode.type,
+      type: shortType,
       icon: resolveIcon(n8nNode.type),
       properties,
     },

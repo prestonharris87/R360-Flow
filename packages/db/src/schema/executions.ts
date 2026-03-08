@@ -2,8 +2,8 @@ import {
   pgTable, uuid, varchar, jsonb, text,
   timestamp, pgEnum, index,
 } from 'drizzle-orm/pg-core';
-import { tenants } from './tenants.js';
-import { workflows } from './workflows.js';
+import { tenants } from './tenants';
+import { workflows } from './workflows';
 
 export const executionStatusEnum = pgEnum('execution_status', [
   'pending', 'running', 'success', 'error', 'cancelled', 'timeout',

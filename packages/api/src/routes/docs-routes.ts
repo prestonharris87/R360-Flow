@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { generateOpenAPISpec } from '../docs/openapi-spec.js';
+import { generateOpenAPISpec } from '../docs/openapi-spec';
 
 export async function docsRoutes(fastify: FastifyInstance): Promise<void> {
   const spec = generateOpenAPISpec();

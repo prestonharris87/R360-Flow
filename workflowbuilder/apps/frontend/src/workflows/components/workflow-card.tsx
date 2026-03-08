@@ -7,7 +7,7 @@ interface WorkflowCardProps {
 }
 
 export function WorkflowCard({ workflow, onOpen, onDelete }: WorkflowCardProps) {
-  const updatedAt = new Date(workflow.updated_at).toLocaleDateString();
+  const updatedAt = new Date(workflow.updatedAt).toLocaleDateString();
 
   return (
     <div
@@ -44,31 +44,39 @@ export function WorkflowCard({ workflow, onOpen, onDelete }: WorkflowCardProps) 
             fontSize: '0.75rem',
             padding: '2px 8px',
             borderRadius: '4px',
-            backgroundColor: workflow.is_active ? '#e8f5e9' : '#f5f5f5',
-            color: workflow.is_active ? '#2e7d32' : '#666',
+            backgroundColor: workflow.isActive ? '#e8f5e9' : '#f5f5f5',
+            color: workflow.isActive ? '#2e7d32' : '#666',
           }}
         >
-          {workflow.is_active ? 'Active' : 'Inactive'}
+          {workflow.isActive ? 'Active' : 'Inactive'}
         </span>
       </div>
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          if (confirm('Delete this workflow?')) onDelete();
-        }}
+      <div
         style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
           marginTop: '0.5rem',
-          color: '#d32f2f',
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          fontSize: '0.875rem',
-          padding: '4px 0',
         }}
-        type="button"
       >
-        Delete
-      </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (confirm('Delete this workflow?')) onDelete();
+          }}
+          style={{
+            color: '#d32f2f',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: '0.875rem',
+            padding: '4px 0',
+          }}
+          type="button"
+        >
+          Delete
+        </button>
+      </div>
     </div>
   );
 }

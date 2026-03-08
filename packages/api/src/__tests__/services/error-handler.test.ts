@@ -4,7 +4,7 @@ import {
   type ErrorStore,
   type ExecutionError,
   type ErrorClassification,
-} from '../../services/error-handler.js';
+} from '../../services/error-handler';
 
 /** In-memory mock implementation of ErrorStore */
 function createMockStore(): ErrorStore & {

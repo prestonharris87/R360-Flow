@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { UsageTracker, type UsageStore, type UsageRecord } from '../../billing/usage-tracker.js';
+import { UsageTracker, type UsageStore, type UsageRecord } from '../../billing/usage-tracker';
 
 function createMockStore(): UsageStore & {
   incrementWorkflowCount: ReturnType<typeof vi.fn>;

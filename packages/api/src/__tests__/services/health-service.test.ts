@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { HealthService } from '../../services/health-service.js';
-import type { HealthChecker, ComponentHealth } from '../../services/health-service.js';
+import { HealthService } from '../../services/health-service';
+import type { HealthChecker, ComponentHealth } from '../../services/health-service';
 
 describe('HealthService', () => {
   let service: HealthService;

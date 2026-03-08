@@ -1,6 +1,6 @@
 # R360 Flow — Phase Build Orchestration Prompt
 
-You are building R360 Flow, a multi-tenant workflow automation platform. This prompt drives a Ralph Wiggum loop that iterates through all 7 phases, running plan-then-build for each.
+You are building R360 Flow, a multi-tenant workflow automation platform. This prompt drives a Ralph Wiggum loop that iterates through all 8 phases, running plan-then-build for each.
 
 ## Cardinal Rule (ALWAYS ENFORCE)
 
@@ -28,7 +28,7 @@ Based on the current state in `build-progress.json`, execute ONE of these workfl
 
 You are planning Phase N. Execute these steps:
 
-1. Read the phase spec (Phases 1-6: `specs/Phase{N}.md`, Phase 7: `specs/phase7-application-shell-and-pages.md`)
+1. Read the phase spec (Phases 1-6: `specs/Phase{N}.md`, Phase 7: `specs/phase7-application-shell-and-pages.md`, Phase 8: `specs/Phase8.md`)
 2. Read the existing architecture docs: `CLAUDE.md`, `plan-overview.md`
 3. Analyze the spec and break it into discrete, implementable tasks
 4. Create an execution plan at `specs/phase-{N}-execution-plan.md` with:
@@ -78,7 +78,7 @@ You are building Phase N. Execute these steps:
 
 You are validating Phase N completion. Execute these steps:
 
-1. Read the phase spec (Phases 1-6: `specs/Phase{N}.md`, Phase 7: `specs/phase7-application-shell-and-pages.md`) — focus on the completion checklist / acceptance criteria
+1. Read the phase spec (Phases 1-6: `specs/Phase{N}.md`, Phase 7: `specs/phase7-application-shell-and-pages.md`, Phase 8: `specs/Phase8.md`) — focus on the completion checklist / acceptance criteria
 2. Read the execution plan at `specs/phase-{N}-execution-plan.md`
 3. Deploy a validator agent to run the full phase completion checklist:
    - All files exist and have correct content
@@ -101,7 +101,7 @@ You are validating Phase N completion. Execute these steps:
 
 ### When all phases complete
 
-When `currentPhase > 7` or `completedPhases` contains all 7 phases:
+When `currentPhase > 8` or `completedPhases` contains all 8 phases:
 
 1. Run a final validation across all phases
 2. Update `build-progress.json` with `status: "complete"`
@@ -117,6 +117,7 @@ When `currentPhase > 7` or `completedPhases` contains all 7 phases:
 - **Phase 5**: Workflow Builder SDK — React visual editor, plugin nodes, panels
 - **Phase 6**: Integration, testing, deployment configs, documentation
 - **Phase 7**: Application shell & core pages — React Router, sidebar nav, Dashboard, Workflow List, Execution History, Credentials, Settings
+- **Phase 8**: Vue frontend rewrite — replace React app with Vue 3 + n8n design system, workflow editor with @vue-flow/core, all pages and features
 
 ## Agent Guidelines
 

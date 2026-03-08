@@ -16,8 +16,10 @@ import {
 } from 'n8n-workflow';
 import { WorkflowExecute, ExecutionLifecycleHooks, ExternalSecretsProxy } from 'n8n-core';
 
-import type { R360NodeTypes } from './node-types.js';
-import { TenantCredentialsHelper } from './credentials-helper.js';
+import type { R360NodeTypes } from './node-types';
+import { TenantCredentialsHelper } from './credentials-helper';
+import type { CredentialLookupFn, CredentialUpdateFn } from './credentials-helper';
+import { getCredentialTypeRegistry } from './bootstrap';
 
 export interface ExecuteWorkflowParams {
   tenantId: string;
@@ -49,7 +51,11 @@ export interface ExecuteWorkflowParams {
  * All tenant context is injected via additionalData at call time.
  */
 export class ExecutionService {
-  constructor(private readonly nodeTypes: R360NodeTypes) {}
+  constructor(
+    private readonly nodeTypes: R360NodeTypes,
+    private readonly credentialLookupFn?: CredentialLookupFn,
+    private readonly credentialUpdateFn?: CredentialUpdateFn,
+  ) {}
 
   /**
    * Execute a workflow with full tenant isolation.
@@ -86,7 +92,25 @@ export class ExecutionService {
     // 4. Create tenant-scoped credentials helper
     const masterKey =
       process.env.MASTER_ENCRYPTION_KEY || 'default-dev-key-change-in-prod';
-    const credentialsHelper = new TenantCredentialsHelper(tenantId, masterKey);
+
+    // Resolve the credential type registry (loaded once at bootstrap, shared across tenants).
+    // Uses a try/catch so execution still works before bootstrap (e.g., in tests).
+    let credentialTypeRegistry;
+    try {
+      credentialTypeRegistry = getCredentialTypeRegistry();
+    } catch {
+      // Registry not available yet (bootstrap not called) — proceed without it.
+      // Credential authentication and type lookups will gracefully degrade.
+      credentialTypeRegistry = undefined;
+    }
+
+    const credentialsHelper = new TenantCredentialsHelper(
+      tenantId,
+      masterKey,
+      this.credentialLookupFn,
+      credentialTypeRegistry,
+      this.credentialUpdateFn,
+    );
 
     // 5. Build lifecycle hooks
     const workflowData: IWorkflowBase = {
@@ -118,25 +142,41 @@ export class ExecutionService {
     });
 
     hooks.addHandler('nodeExecuteBefore', async function (nodeName, _data) {
-      onHookEvent?.('nodeExecuteBefore', { nodeName });
-      // TODO: Write step start to DB
+      const node = workflow.getNode(nodeName);
+      onHookEvent?.('nodeExecuteBefore', {
+        nodeName,
+        nodeType: node?.type ?? undefined,
+      });
     });
 
     hooks.addHandler(
       'nodeExecuteAfter',
-      async function (nodeName, taskData, _executionData) {
-        onHookEvent?.('nodeExecuteAfter', { nodeName, taskData });
-        // TODO: Write step result to DB
-        // await executionStepStore.create({
-        //   execution_id: executionId,
-        //   tenant_id: tenantId,
-        //   node_id: nodeName,
-        //   status: taskData.executionStatus || 'success',
-        //   input_json: JSON.stringify(taskData.data),
-        //   output_json: JSON.stringify(taskData.data),
-        //   started_at: taskData.startTime ? new Date(taskData.startTime) : new Date(),
-        //   finished_at: new Date(),
-        // });
+      async function (nodeName, taskData, executionData) {
+        const node = workflow.getNode(nodeName);
+
+        // Resolve the input data by looking up the source node's output
+        // in executionData.resultData.runData
+        let inputData: unknown = null;
+        const source = taskData.source?.[0];
+        if (source && executionData?.resultData?.runData) {
+          const prevName = source.previousNode;
+          const runIdx = source.previousNodeRun ?? 0;
+          const outIdx = source.previousNodeOutput ?? 0;
+          const prevRun = executionData.resultData.runData[prevName]?.[runIdx];
+          const prevOutput = prevRun?.data?.main?.[outIdx];
+          if (prevOutput) {
+            inputData = prevOutput.length === 1
+              ? prevOutput[0]?.json ?? prevOutput[0]
+              : prevOutput.map((item: { json?: unknown }) => item?.json ?? item);
+          }
+        }
+
+        onHookEvent?.('nodeExecuteAfter', {
+          nodeName,
+          nodeType: node?.type ?? undefined,
+          taskData,
+          inputData,
+        });
       },
     );
 

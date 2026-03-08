@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
-import { WebhookRegistry } from './webhook-registry.js';
-import type { WebhookRegistration } from './webhook-registry.js';
+import { WebhookRegistry } from './webhook-registry';
+import type { WebhookRegistration } from './webhook-registry';
 
 export class WebhookLifecycleManager {
   private registry: WebhookRegistry;

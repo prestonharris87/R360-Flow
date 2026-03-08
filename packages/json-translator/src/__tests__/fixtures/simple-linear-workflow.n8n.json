@@ -4,7 +4,7 @@
     {
       "id": "node-1",
       "name": "Start",
-      "type": "n8n-nodes-base.manualTrigger",
+      "type": "manualTrigger",
       "typeVersion": 1,
       "position": [100, 200],
       "parameters": {}
@@ -12,7 +12,7 @@
     {
       "id": "node-2",
       "name": "Set Values",
-      "type": "n8n-nodes-base.set",
+      "type": "set",
       "typeVersion": 1,
       "position": [350, 200],
       "parameters": {
@@ -27,7 +27,7 @@
     {
       "id": "node-3",
       "name": "Send Request",
-      "type": "n8n-nodes-base.httpRequest",
+      "type": "httpRequest",
       "typeVersion": 4,
       "position": [600, 200],
       "parameters": {

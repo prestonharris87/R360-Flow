@@ -7,7 +7,7 @@ import {
   UpdateCredentialSchema,
   TriggerExecutionSchema,
   UuidParamSchema,
-} from '../validators.js';
+} from '../validators';
 
 describe('Zod Validators', () => {
   describe('CreateWorkflowSchema', () => {

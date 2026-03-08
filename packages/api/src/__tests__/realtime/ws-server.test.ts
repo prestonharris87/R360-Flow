@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import WebSocket from 'ws';
 import http from 'node:http';
-import { createExecutionWSServer } from '../../realtime/ws-server.js';
-import { ExecutionMonitor } from '../../realtime/execution-monitor.js';
-import type { WSAuthenticator } from '../../realtime/ws-server.js';
-import type { ExecutionEvent } from '../../realtime/execution-monitor.js';
+import { createExecutionWSServer } from '../../realtime/ws-server';
+import { ExecutionMonitor } from '../../realtime/execution-monitor';
+import type { WSAuthenticator } from '../../realtime/ws-server';
+import type { ExecutionEvent } from '../../realtime/execution-monitor';
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 

@@ -51,7 +51,7 @@ export function withIntegrationThroughR360Api<WProps extends object>(
           const workflow = await workflowApi.get(workflowId);
           currentWorkflowRef.current = workflow;
 
-          const definitionJson = workflow.definition_json as IntegrationDataFormatOptional | undefined;
+          const definitionJson = workflow.definitionJson as IntegrationDataFormatOptional | undefined;
 
           if (definitionJson) {
             setData({
@@ -90,13 +90,13 @@ export function withIntegrationThroughR360Api<WProps extends object>(
             // Update existing workflow
             saved = await workflowApi.update(currentWorkflowRef.current.id, {
               name: data.name,
-              definition_json: definitionJson,
+              definitionJson,
             });
           } else {
             // Create new workflow
             saved = await workflowApi.create({
               name: data.name || 'Untitled Workflow',
-              definition_json: definitionJson,
+              definitionJson,
             });
 
             // Update URL with new workflow ID without reloading

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import {
   encryptCredentialData,
   decryptCredentialData,
-} from '../../services/encryption.js';
+} from '../../services/encryption';
 
 describe('Encryption Service', () => {
   beforeAll(() => {

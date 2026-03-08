@@ -8,7 +8,7 @@
         "type": "start-node",
         "position": { "x": 100, "y": 300 },
         "data": {
-          "type": "n8n-nodes-base.webhook",
+          "type": "webhook",
           "icon": "Webhook",
           "properties": {
             "label": "Webhook",
@@ -22,7 +22,7 @@
         "type": "decision-node",
         "position": { "x": 350, "y": 300 },
         "data": {
-          "type": "n8n-nodes-base.if",
+          "type": "if",
           "icon": "GitBranch",
           "properties": {
             "label": "Check Status",
@@ -46,7 +46,7 @@
         "type": "node",
         "position": { "x": 600, "y": 200 },
         "data": {
-          "type": "n8n-nodes-base.slack",
+          "type": "slack",
           "icon": "MessageSquare",
           "properties": {
             "label": "Notify Slack",
@@ -62,7 +62,7 @@
         "type": "node",
         "position": { "x": 600, "y": 400 },
         "data": {
-          "type": "n8n-nodes-base.gmail",
+          "type": "gmail",
           "icon": "Mail",
           "properties": {
             "label": "Send Email",

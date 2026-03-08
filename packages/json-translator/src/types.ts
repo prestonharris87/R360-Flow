@@ -104,4 +104,4 @@ export type {
   WorkflowBuilderEdge,
   Viewport,
   LayoutDirection,
-} from './wb-types.js';
+} from './wb-types';

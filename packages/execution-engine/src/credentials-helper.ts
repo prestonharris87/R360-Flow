@@ -5,9 +5,12 @@ import {
   scryptSync,
 } from 'node:crypto';
 import type {
+  IAuthenticate,
+  IAuthenticateGeneric,
   ICredentialDataDecryptedObject,
   ICredentialsEncrypted,
   ICredentialsExpressionResolveValues,
+  IDataObject,
   IExecuteData,
   IHttpRequestHelper,
   IHttpRequestOptions,
@@ -20,6 +23,7 @@ import type {
 } from 'n8n-workflow';
 import { ICredentials, ICredentialsHelper } from 'n8n-workflow';
 import type { Workflow } from 'n8n-workflow';
+import type { CredentialTypeRegistry } from './credential-types';
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 16;
@@ -46,6 +50,44 @@ export type CredentialLookupFn = (
   type: string;
   encrypted_data: string;
 } | null>;
+
+/**
+ * Credential update function type.
+ * Provided by the caller to persist updated credential data (e.g., refreshed OAuth tokens).
+ * Must always filter by tenant_id.
+ */
+export type CredentialUpdateFn = (
+  tenantId: string,
+  credentialId: string,
+  encryptedData: string,
+) => Promise<void>;
+
+/**
+ * Resolve n8n credential expression placeholders.
+ *
+ * Replaces `={{$credentials.fieldName}}` patterns with actual credential values.
+ * This handles the standard n8n expression format used in IAuthenticateGeneric
+ * property definitions for injecting credential field values into requests.
+ *
+ * Examples:
+ *   resolveExpression('={{$credentials.apiKey}}', { apiKey: 'abc123' }) => 'abc123'
+ *   resolveExpression('Bearer ={{$credentials.token}}', { token: 'xyz' }) => 'Bearer xyz'
+ *   resolveExpression('static-value', {}) => 'static-value'
+ */
+function resolveExpression(
+  value: unknown,
+  credentials: ICredentialDataDecryptedObject,
+): string {
+  if (typeof value !== 'string') return String(value ?? '');
+  // Strip leading '=' which is n8n's expression mode indicator
+  let expr = value.startsWith('=') ? value.slice(1) : value;
+  return expr.replace(
+    /\{\{\s*\$credentials\.(\w+)\s*\}\}/g,
+    (_, key: string) => {
+      return credentials[key] != null ? String(credentials[key]) : '';
+    },
+  );
+}
 
 /**
  * Concrete implementation of ICredentials for tenant-scoped credential objects.
@@ -106,14 +148,18 @@ class TenantCredentials extends ICredentials {
  */
 export class TenantCredentialsHelper extends ICredentialsHelper {
   private readonly credentialLookup: CredentialLookupFn | null;
+  private readonly credentialUpdate: CredentialUpdateFn | null;
 
   constructor(
     private readonly tenantId: string,
     private readonly masterKey: string,
     credentialLookup?: CredentialLookupFn,
+    private readonly credentialTypeRegistry?: CredentialTypeRegistry,
+    credentialUpdate?: CredentialUpdateFn,
   ) {
     super();
     this.credentialLookup = credentialLookup ?? null;
+    this.credentialUpdate = credentialUpdate ?? null;
   }
 
   // --- Static encryption utilities ---
@@ -191,50 +237,161 @@ export class TenantCredentialsHelper extends ICredentialsHelper {
    * Returns parent credential types for a given credential type name.
    * For example, 'googleSheetsOAuth2Api' has parent type 'oAuth2Api'.
    *
-   * TODO: Load credential type hierarchy from n8n-nodes-base credential type descriptions.
-   * For now, returns empty array. Full implementation will parse credential type
-   * definitions and build the inheritance chain.
+   * Delegates to CredentialTypeRegistry if available, otherwise returns
+   * empty array as a graceful fallback.
    */
-  getParentTypes(_name: string): string[] {
-    // TODO: Load credential type hierarchy from n8n-nodes-base
+  getParentTypes(name: string): string[] {
+    if (this.credentialTypeRegistry) {
+      return this.credentialTypeRegistry.getParentTypes(name);
+    }
+    return [];
+  }
+
+  /**
+   * Returns the credential properties (form fields) for a given credential type.
+   *
+   * Delegates to CredentialTypeRegistry if available, otherwise returns
+   * empty array as a graceful fallback.
+   */
+  getCredentialsProperties(type: string): INodeProperties[] {
+    if (this.credentialTypeRegistry) {
+      return this.credentialTypeRegistry.getCredentialsProperties(type);
+    }
     return [];
   }
 
   /**
    * Applies credential authentication to an HTTP request.
-   * For example, adds Authorization headers based on credential type.
    *
-   * TODO: Implement credential-specific authentication logic by looking up the
-   * credential type's `authenticate` property from ICredentialType definitions.
-   * For now, passes through the request options unchanged.
+   * Supports two forms of ICredentialType.authenticate:
+   * 1. Function — direct async transform of requestOptions
+   * 2. IAuthenticateGeneric — declarative merge of headers/qs/body/auth
+   *    with expression resolution for `={{$credentials.fieldName}}` patterns
+   *
+   * If no credentialTypeRegistry is available or the credential type has no
+   * authenticate property, returns requestOptions unchanged.
    */
   async authenticate(
-    _credentials: ICredentialDataDecryptedObject,
-    _typeName: string,
+    credentials: ICredentialDataDecryptedObject,
+    typeName: string,
     requestOptions: IHttpRequestOptions | IRequestOptionsSimplified,
     _workflow: Workflow,
     _node: INode,
   ): Promise<IHttpRequestOptions> {
-    // TODO: Implement credential-specific authentication logic
-    return requestOptions as IHttpRequestOptions;
+    if (!this.credentialTypeRegistry) {
+      return requestOptions as IHttpRequestOptions;
+    }
+
+    let credentialType;
+    try {
+      credentialType = this.credentialTypeRegistry.getByName(typeName);
+    } catch {
+      // Credential type not found in registry — pass through unchanged
+      return requestOptions as IHttpRequestOptions;
+    }
+
+    if (!credentialType.authenticate) {
+      return requestOptions as IHttpRequestOptions;
+    }
+
+    const auth: IAuthenticate = credentialType.authenticate;
+
+    // Function-based authentication
+    if (typeof auth === 'function') {
+      return auth(credentials, requestOptions as IHttpRequestOptions);
+    }
+
+    // Generic (declarative) authentication
+    const generic = auth as IAuthenticateGeneric;
+    const { properties } = generic;
+    const opts = requestOptions as IHttpRequestOptions;
+
+    if (properties.headers) {
+      opts.headers = { ...(opts.headers as IDataObject) };
+      for (const [key, value] of Object.entries(properties.headers)) {
+        (opts.headers as IDataObject)[key] = resolveExpression(value, credentials);
+      }
+    }
+
+    if (properties.qs) {
+      opts.qs = { ...(opts.qs as IDataObject) };
+      for (const [key, value] of Object.entries(properties.qs)) {
+        (opts.qs as IDataObject)[key] = resolveExpression(value, credentials);
+      }
+    }
+
+    if (properties.body) {
+      opts.body = { ...(opts.body as IDataObject) };
+      for (const [key, value] of Object.entries(properties.body)) {
+        (opts.body as IDataObject)[key] = resolveExpression(value, credentials);
+      }
+    }
+
+    if (properties.auth) {
+      opts.auth = {} as IHttpRequestOptions['auth'];
+      for (const [key, value] of Object.entries(properties.auth)) {
+        (opts.auth as Record<string, unknown>)[key] = resolveExpression(value, credentials);
+      }
+    }
+
+    return opts;
   }
 
   /**
    * Pre-authentication hook, called before the main authenticate step.
    * Used for operations like OAuth token refresh.
    *
-   * TODO: Implement OAuth token refresh logic for credential types that support it.
-   * For now, returns undefined (no pre-authentication needed).
+   * If the credential type defines a preAuthentication method, it is called
+   * with the current credentials and expiry flag. If the method returns
+   * refreshed data, the credentials are updated in the database.
    */
   async preAuthentication(
-    _helpers: IHttpRequestHelper,
-    _credentials: ICredentialDataDecryptedObject,
-    _typeName: string,
+    helpers: IHttpRequestHelper,
+    credentials: ICredentialDataDecryptedObject,
+    typeName: string,
     _node: INode,
-    _credentialsExpired: boolean,
+    credentialsExpired: boolean,
   ): Promise<ICredentialDataDecryptedObject | undefined> {
-    // TODO: Implement OAuth token refresh
-    return undefined;
+    if (!this.credentialTypeRegistry) {
+      return undefined;
+    }
+
+    let credentialType;
+    try {
+      credentialType = this.credentialTypeRegistry.getByName(typeName);
+    } catch {
+      return undefined;
+    }
+
+    if (!credentialType.preAuthentication) {
+      return undefined;
+    }
+
+    // Call preAuthentication with `this` bound to the helpers context,
+    // matching n8n's ICredentialType.preAuthentication signature:
+    //   preAuthentication?(this: IHttpRequestHelper, credentials, ...): Promise<IDataObject>
+    const result = await credentialType.preAuthentication.call(
+      helpers,
+      credentials,
+    );
+
+    if (result && credentialsExpired) {
+      // Merge refreshed token data back into the credentials and persist.
+      // Cast is safe: preAuthentication returns IDataObject whose values are
+      // compatible with CredentialInformation at runtime (strings, numbers, objects).
+      const updatedCredentials = {
+        ...credentials,
+        ...result,
+      } as ICredentialDataDecryptedObject;
+
+      // Return the refreshed data so the caller (n8n-core) can persist it
+      // via updateCredentials / updateCredentialsOauthTokenData.
+      return updatedCredentials;
+    }
+
+    return result
+      ? ({ ...credentials, ...result } as ICredentialDataDecryptedObject)
+      : undefined;
   }
 
   /**
@@ -323,32 +480,35 @@ export class TenantCredentialsHelper extends ICredentialsHelper {
   /**
    * Encrypts and updates credential data in the database (tenant-scoped).
    *
-   * TODO: Wire up to actual DB update once @r360/db credential store is integrated.
-   * For now, this is a no-op stub.
+   * Uses the CredentialUpdateFn if provided to persist the encrypted data.
+   * Falls back to a warning log if no update function is available.
    */
   async updateCredentials(
-    _nodeCredentials: INodeCredentialsDetails,
+    nodeCredentials: INodeCredentialsDetails,
     _type: string,
-    _data: ICredentialDataDecryptedObject,
+    data: ICredentialDataDecryptedObject,
   ): Promise<void> {
-    // TODO: Encrypt and update in DB (tenant-scoped)
-    // const encrypted = TenantCredentialsHelper.encryptCredentialData(
-    //   data,
-    //   this.tenantId,
-    //   this.masterKey,
-    // );
-    // await credentialStore.updateByTenantAndId(
-    //   this.tenantId,
-    //   nodeCredentials.id!,
-    //   encrypted,
-    // );
+    if (!this.credentialUpdate) {
+      console.warn(
+        `[TenantCredentialsHelper] Cannot update credential "${nodeCredentials.name}" ` +
+          `(id: ${nodeCredentials.id}) for tenant ${this.tenantId}: ` +
+          `no credentialUpdateFn provided`,
+      );
+      return;
+    }
+
+    const encrypted = TenantCredentialsHelper.encryptCredentialData(
+      data,
+      this.tenantId,
+      this.masterKey,
+    );
+
+    await this.credentialUpdate(this.tenantId, nodeCredentials.id!, encrypted);
   }
 
   /**
    * Updates OAuth token data for a credential (tenant-scoped).
    * Delegates to updateCredentials since the encryption process is the same.
-   *
-   * TODO: Wire up to actual DB update once @r360/db credential store is integrated.
    */
   async updateCredentialsOauthTokenData(
     nodeCredentials: INodeCredentialsDetails,
@@ -357,16 +517,5 @@ export class TenantCredentialsHelper extends ICredentialsHelper {
     _additionalData: IWorkflowExecuteAdditionalData,
   ): Promise<void> {
     return this.updateCredentials(nodeCredentials, type, data);
-  }
-
-  /**
-   * Returns the credential properties (form fields) for a given credential type.
-   *
-   * TODO: Load credential type descriptions from n8n-nodes-base and return
-   * the properties array. For now, returns empty array.
-   */
-  getCredentialsProperties(_type: string): INodeProperties[] {
-    // TODO: Load credential type properties from n8n-nodes-base
-    return [];
   }
 }

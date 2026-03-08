@@ -5,14 +5,14 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { bootstrapN8nContainer, resetBootstrap } from '../bootstrap.js';
-import { R360NodeTypes } from '../node-types.js';
+import { bootstrapN8nContainer, resetBootstrap } from '../bootstrap';
+import { R360NodeTypes } from '../node-types';
 import {
   convertToPaletteItem,
   convertN8nPropertiesToSchema,
   buildNodePalette,
-} from '../node-palette.js';
-// N8nPaletteItem type available from node-palette.js if needed
+} from '../node-palette';
+import type { ConditionalRule } from '../node-palette';
 
 const TEST_ENCRYPTION_KEY = 'test-key-32-bytes-long-xxxxxxxx';
 
@@ -74,6 +74,51 @@ describe('convertToPaletteItem', () => {
     expect(paletteItem.schema.properties).toBeDefined();
     expect(paletteItem.defaultPropertiesData).toBeDefined();
     expect(paletteItem.defaultPropertiesData.label).toBe('HTTP Request');
+  });
+
+  it('includes credentials when present on node description', () => {
+    const desc: Partial<INodeTypeDescription> = {
+      name: 'n8n-nodes-base.slack',
+      displayName: 'Slack',
+      description: 'Interact with Slack',
+      group: ['output'],
+      version: 1,
+      defaults: { name: 'Slack' },
+      properties: [],
+      inputs: ['main'],
+      outputs: ['main'],
+      credentials: [
+        { name: 'slackApi', required: true, displayName: 'Slack API' },
+        { name: 'slackOAuth2Api' },
+      ],
+    };
+
+    const item = convertToPaletteItem(desc as INodeTypeDescription);
+    expect(item.credentials).toBeDefined();
+    expect(item.credentials).toHaveLength(2);
+    expect(item.credentials![0]).toEqual({
+      name: 'slackApi',
+      required: true,
+      displayName: 'Slack API',
+    });
+    expect(item.credentials![1]).toEqual({ name: 'slackOAuth2Api' });
+  });
+
+  it('does not include credentials key when none present', () => {
+    const desc: Partial<INodeTypeDescription> = {
+      name: 'n8n-nodes-base.set',
+      displayName: 'Set',
+      description: 'Sets a value',
+      group: ['input'],
+      version: 1,
+      defaults: { name: 'Set' },
+      properties: [],
+      inputs: ['main'],
+      outputs: ['main'],
+    };
+
+    const item = convertToPaletteItem(desc as INodeTypeDescription);
+    expect(item.credentials).toBeUndefined();
   });
 
   it('maps trigger nodes to trigger templateType (group includes trigger)', () => {
@@ -209,7 +254,7 @@ describe('convertToPaletteItem', () => {
 });
 
 describe('convertN8nPropertiesToSchema', () => {
-  it('converts string properties', () => {
+  it('converts string properties with description', () => {
     const schema = convertN8nPropertiesToSchema([
       {
         displayName: 'Name',
@@ -225,9 +270,10 @@ describe('convertN8nPropertiesToSchema', () => {
     expect(schema.properties.name!.type).toBe('string');
     expect(schema.properties.name!.label).toBe('Name');
     expect(schema.properties.name!.placeholder).toBe('Enter name');
+    expect(schema.properties.name!.description).toBe('The name');
   });
 
-  it('converts number properties', () => {
+  it('converts number properties with min/max from typeOptions', () => {
     const schema = convertN8nPropertiesToSchema([
       {
         displayName: 'Count',
@@ -235,12 +281,18 @@ describe('convertN8nPropertiesToSchema', () => {
         type: 'number',
         default: 0,
         description: 'The count',
+        typeOptions: {
+          minValue: 1,
+          maxValue: 100,
+        },
       },
     ] as any);
 
     expect(schema.properties.count).toBeDefined();
     expect(schema.properties.count!.type).toBe('number');
     expect(schema.properties.count!.label).toBe('Count');
+    expect(schema.properties.count!.minimum).toBe(1);
+    expect(schema.properties.count!.maximum).toBe(100);
   });
 
   it('converts boolean properties', () => {
@@ -282,34 +334,79 @@ describe('convertN8nPropertiesToSchema', () => {
     });
   });
 
-  it('converts collection properties to object type', () => {
+  it('converts collection properties with nested sub-fields', () => {
     const schema = convertN8nPropertiesToSchema([
       {
         displayName: 'Options',
         name: 'options',
         type: 'collection',
         default: {},
-        options: [],
+        options: [
+          {
+            displayName: 'Timeout',
+            name: 'timeout',
+            type: 'number',
+            default: 30,
+            description: 'Timeout in seconds',
+          },
+          {
+            displayName: 'Follow Redirects',
+            name: 'followRedirects',
+            type: 'boolean',
+            default: true,
+          },
+        ],
       },
     ] as any);
 
     expect(schema.properties.options).toBeDefined();
     expect(schema.properties.options!.type).toBe('object');
+    expect(schema.properties.options!.properties).toBeDefined();
+    expect(schema.properties.options!.properties!.timeout).toBeDefined();
+    expect(schema.properties.options!.properties!.timeout!.type).toBe('number');
+    expect(schema.properties.options!.properties!.followRedirects).toBeDefined();
+    expect(schema.properties.options!.properties!.followRedirects!.type).toBe('boolean');
   });
 
-  it('converts fixedCollection properties to object type', () => {
+  it('converts fixedCollection properties with nested groups', () => {
     const schema = convertN8nPropertiesToSchema([
       {
         displayName: 'Items',
         name: 'items',
         type: 'fixedCollection',
         default: {},
-        options: [],
+        options: [
+          {
+            displayName: 'Headers',
+            name: 'headers',
+            values: [
+              {
+                displayName: 'Key',
+                name: 'key',
+                type: 'string',
+                default: '',
+              },
+              {
+                displayName: 'Value',
+                name: 'value',
+                type: 'string',
+                default: '',
+              },
+            ],
+          },
+        ],
       },
     ] as any);
 
     expect(schema.properties.items).toBeDefined();
     expect(schema.properties.items!.type).toBe('object');
+    expect(schema.properties.items!.properties).toBeDefined();
+    const headers = schema.properties.items!.properties!.headers;
+    expect(headers).toBeDefined();
+    expect(headers!.type).toBe('object');
+    expect(headers!.label).toBe('Headers');
+    expect(headers!.properties!.key).toBeDefined();
+    expect(headers!.properties!.value).toBeDefined();
   });
 
   it('always includes label and description in schema', () => {
@@ -320,7 +417,7 @@ describe('convertN8nPropertiesToSchema', () => {
     expect(schema.properties.description!.type).toBe('string');
   });
 
-  it('falls back to string for unknown property types', () => {
+  it('converts json type to string with format json', () => {
     const schema = convertN8nPropertiesToSchema([
       {
         displayName: 'Custom',
@@ -332,6 +429,323 @@ describe('convertN8nPropertiesToSchema', () => {
 
     expect(schema.properties.custom).toBeDefined();
     expect(schema.properties.custom!.type).toBe('string');
+    expect(schema.properties.custom!.format).toBe('json');
+  });
+
+  it('converts dateTime type to string with format date-time', () => {
+    const schema = convertN8nPropertiesToSchema([
+      {
+        displayName: 'Start Date',
+        name: 'startDate',
+        type: 'dateTime',
+        default: '',
+      },
+    ] as any);
+
+    expect(schema.properties.startDate!.type).toBe('string');
+    expect(schema.properties.startDate!.format).toBe('date-time');
+  });
+
+  it('converts color type to string with format color', () => {
+    const schema = convertN8nPropertiesToSchema([
+      {
+        displayName: 'Color',
+        name: 'color',
+        type: 'color',
+        default: '#000000',
+      },
+    ] as any);
+
+    expect(schema.properties.color!.type).toBe('string');
+    expect(schema.properties.color!.format).toBe('color');
+  });
+
+  it('skips notice types', () => {
+    const schema = convertN8nPropertiesToSchema([
+      {
+        displayName: 'Note',
+        name: 'note',
+        type: 'notice',
+        default: '',
+      },
+    ] as any);
+
+    expect(schema.properties.note).toBeUndefined();
+  });
+
+  it('converts multiOptions to array type', () => {
+    const schema = convertN8nPropertiesToSchema([
+      {
+        displayName: 'Tags',
+        name: 'tags',
+        type: 'multiOptions',
+        default: [],
+        options: [
+          { name: 'Alpha', value: 'alpha' },
+          { name: 'Beta', value: 'beta' },
+        ],
+      },
+    ] as any);
+
+    expect(schema.properties.tags!.type).toBe('array');
+    expect(schema.properties.tags!.items).toBeDefined();
+    expect(schema.properties.tags!.items!.type).toBe('string');
+    expect(schema.properties.tags!.items!.options).toHaveLength(2);
+  });
+
+  it('converts resourceLocator to string type', () => {
+    const schema = convertN8nPropertiesToSchema([
+      {
+        displayName: 'Resource',
+        name: 'resource',
+        type: 'resourceLocator',
+        default: '',
+      },
+    ] as any);
+
+    expect(schema.properties.resource!.type).toBe('string');
+  });
+
+  it('handles password typeOption with format password', () => {
+    const schema = convertN8nPropertiesToSchema([
+      {
+        displayName: 'Secret',
+        name: 'secret',
+        type: 'string',
+        default: '',
+        typeOptions: { password: true },
+      },
+    ] as any);
+
+    expect(schema.properties.secret!.type).toBe('string');
+    expect(schema.properties.secret!.format).toBe('password');
+  });
+
+  it('handles rows typeOption', () => {
+    const schema = convertN8nPropertiesToSchema([
+      {
+        displayName: 'Body',
+        name: 'body',
+        type: 'string',
+        default: '',
+        typeOptions: { rows: 5 },
+      },
+    ] as any);
+
+    expect(schema.properties.body!.rows).toBe(5);
+  });
+
+  it('collects required fields into schema.required', () => {
+    const schema = convertN8nPropertiesToSchema([
+      {
+        displayName: 'URL',
+        name: 'url',
+        type: 'string',
+        default: '',
+        required: true,
+      },
+      {
+        displayName: 'Method',
+        name: 'method',
+        type: 'string',
+        default: 'GET',
+      },
+    ] as any);
+
+    expect(schema.required).toBeDefined();
+    expect(schema.required).toContain('url');
+    expect(schema.required).not.toContain('method');
+  });
+});
+
+describe('convertN8nPropertiesToSchema - displayOptions (allOf)', () => {
+  it('moves properties with displayOptions.show into allOf', () => {
+    const schema = convertN8nPropertiesToSchema([
+      {
+        displayName: 'Method',
+        name: 'method',
+        type: 'options',
+        default: 'GET',
+        options: [
+          { name: 'GET', value: 'GET' },
+          { name: 'POST', value: 'POST' },
+        ],
+      },
+      {
+        displayName: 'Body',
+        name: 'body',
+        type: 'string',
+        default: '',
+        displayOptions: {
+          show: { method: ['POST', 'PUT'] },
+        },
+      },
+    ] as any);
+
+    // method should be a static property
+    expect(schema.properties.method).toBeDefined();
+    // body should NOT be a static property
+    expect(schema.properties.body).toBeUndefined();
+    // body should be in allOf
+    expect(schema.allOf).toBeDefined();
+    expect(schema.allOf).toHaveLength(1);
+
+    const rule: ConditionalRule = schema.allOf![0]!;
+    expect(rule.if.properties.method).toEqual({ enum: ['POST', 'PUT'] });
+    expect(rule.then.properties.body).toBeDefined();
+    expect(rule.then.properties.body!.type).toBe('string');
+  });
+
+  it('moves properties with displayOptions.hide into allOf with not', () => {
+    const schema = convertN8nPropertiesToSchema([
+      {
+        displayName: 'Method',
+        name: 'method',
+        type: 'options',
+        default: 'GET',
+        options: [
+          { name: 'GET', value: 'GET' },
+          { name: 'POST', value: 'POST' },
+        ],
+      },
+      {
+        displayName: 'Body',
+        name: 'body',
+        type: 'string',
+        default: '',
+        displayOptions: {
+          hide: { method: ['GET'] },
+        },
+      },
+    ] as any);
+
+    expect(schema.allOf).toBeDefined();
+    expect(schema.allOf).toHaveLength(1);
+
+    const rule = schema.allOf![0]!;
+    expect(rule.if.properties.method).toEqual({ not: { enum: ['GET'] } });
+    expect(rule.then.properties.body).toBeDefined();
+  });
+
+  it('groups properties with the same displayOptions into one allOf entry', () => {
+    const schema = convertN8nPropertiesToSchema([
+      {
+        displayName: 'Method',
+        name: 'method',
+        type: 'options',
+        default: 'GET',
+        options: [
+          { name: 'GET', value: 'GET' },
+          { name: 'POST', value: 'POST' },
+        ],
+      },
+      {
+        displayName: 'Body',
+        name: 'body',
+        type: 'string',
+        default: '',
+        displayOptions: {
+          show: { method: ['POST'] },
+        },
+      },
+      {
+        displayName: 'Content-Type',
+        name: 'contentType',
+        type: 'string',
+        default: 'application/json',
+        displayOptions: {
+          show: { method: ['POST'] },
+        },
+      },
+    ] as any);
+
+    // Two conditional properties share the same condition => 1 allOf entry
+    expect(schema.allOf).toHaveLength(1);
+    const rule = schema.allOf![0]!;
+    expect(rule.then.properties.body).toBeDefined();
+    expect(rule.then.properties.contentType).toBeDefined();
+  });
+
+  it('creates separate allOf entries for different displayOptions', () => {
+    const schema = convertN8nPropertiesToSchema([
+      {
+        displayName: 'Method',
+        name: 'method',
+        type: 'options',
+        default: 'GET',
+        options: [
+          { name: 'GET', value: 'GET' },
+          { name: 'POST', value: 'POST' },
+          { name: 'PUT', value: 'PUT' },
+        ],
+      },
+      {
+        displayName: 'Body',
+        name: 'body',
+        type: 'string',
+        default: '',
+        displayOptions: {
+          show: { method: ['POST'] },
+        },
+      },
+      {
+        displayName: 'Resource ID',
+        name: 'resourceId',
+        type: 'string',
+        default: '',
+        displayOptions: {
+          show: { method: ['PUT'] },
+        },
+      },
+    ] as any);
+
+    expect(schema.allOf).toHaveLength(2);
+  });
+
+  it('includes required fields in conditional then.required', () => {
+    const schema = convertN8nPropertiesToSchema([
+      {
+        displayName: 'Method',
+        name: 'method',
+        type: 'options',
+        default: 'GET',
+        options: [
+          { name: 'GET', value: 'GET' },
+          { name: 'POST', value: 'POST' },
+        ],
+      },
+      {
+        displayName: 'Body',
+        name: 'body',
+        type: 'string',
+        default: '',
+        required: true,
+        displayOptions: {
+          show: { method: ['POST'] },
+        },
+      },
+    ] as any);
+
+    expect(schema.allOf).toHaveLength(1);
+    expect(schema.allOf![0]!.then.required).toContain('body');
+  });
+
+  it('ignores @version and @feature meta-keys in displayOptions', () => {
+    const schema = convertN8nPropertiesToSchema([
+      {
+        displayName: 'Name',
+        name: 'name',
+        type: 'string',
+        default: '',
+        displayOptions: {
+          show: { '@version': [2] },
+        },
+      },
+    ] as any);
+
+    // @version-only displayOptions is treated as unconditional
+    expect(schema.properties.name).toBeDefined();
+    expect(schema.allOf).toBeUndefined();
   });
 });
 
@@ -455,5 +869,34 @@ describe('buildNodePalette (integration with n8n-nodes-base)', () => {
     expect(['trigger', 'action', 'conditional', 'default']).toContain(
       sampleItem.templateType
     );
+  });
+
+  it('enriched schema includes descriptions on fields', () => {
+    const palette = buildNodePalette(nodeTypes);
+    // Find a node that has properties with descriptions
+    const nodeWithProps = palette.find(
+      (item) => Object.keys(item.schema.properties).length > 3
+    );
+    expect(nodeWithProps).toBeDefined();
+
+    // At least some fields should have descriptions
+    const fields = Object.values(nodeWithProps!.schema.properties);
+    const fieldsWithDesc = fields.filter((f) => f.description);
+    expect(fieldsWithDesc.length).toBeGreaterThan(0);
+  });
+
+  it('enriched schema uses allOf for conditional properties', () => {
+    const palette = buildNodePalette(nodeTypes);
+    // Find a node that has conditional properties (allOf)
+    const nodeWithAllOf = palette.find(
+      (item) => item.schema.allOf && item.schema.allOf.length > 0
+    );
+    expect(nodeWithAllOf).toBeDefined();
+
+    const firstRule = nodeWithAllOf!.schema.allOf![0]!;
+    expect(firstRule.if).toBeDefined();
+    expect(firstRule.if.properties).toBeDefined();
+    expect(firstRule.then).toBeDefined();
+    expect(firstRule.then.properties).toBeDefined();
   });
 });

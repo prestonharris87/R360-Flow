@@ -3,7 +3,7 @@ import {
   StripeWebhookHandler,
   type TenantServiceInterface,
   type UsageTrackerInterface,
-} from '../../billing/stripe-webhook-handler.js';
+} from '../../billing/stripe-webhook-handler';
 import type Stripe from 'stripe';
 
 function createMockTenantService(): TenantServiceInterface & {

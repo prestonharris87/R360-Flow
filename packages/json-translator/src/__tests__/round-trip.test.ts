@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { translateWBToN8n, translateN8nToWB } from '../index.js';
-import type { DiagramModel } from '../wb-types.js';
-import type { WorkflowParameters } from '../types.js';
+import { translateWBToN8n, translateN8nToWB } from '../index';
+import type { DiagramModel } from '../wb-types';
+import type { WorkflowParameters } from '../types';
 
 function loadFixture<T>(filename: string): T {
   const filePath = join(__dirname, 'fixtures', filename);
@@ -93,7 +93,7 @@ describe('Round-trip fidelity: WB -> n8n -> WB', () => {
 
     // Find the HTTP Request node
     const httpNode = roundTripWB.diagram.nodes.find(
-      n => n.data.type === 'n8n-nodes-base.httpRequest',
+      n => n.data.type === 'httpRequest',
     );
     expect(httpNode).toBeDefined();
 
@@ -135,7 +135,7 @@ describe('Round-trip fidelity: WB -> n8n -> WB', () => {
             type: 'start-node',
             position: { x: 100, y: 100 },
             data: {
-              type: 'n8n-nodes-base.manualTrigger',
+              type: 'manualTrigger',
               icon: 'PlayCircle',
               properties: { label: 'Start' },
             },
@@ -149,13 +149,13 @@ describe('Round-trip fidelity: WB -> n8n -> WB', () => {
     const n8n = translateWBToN8n(singleNode);
     expect(n8n.nodes).toHaveLength(1);
     expect(n8n.nodes[0]!.name).toBe('Start');
-    expect(n8n.nodes[0]!.type).toBe('n8n-nodes-base.manualTrigger');
+    expect(n8n.nodes[0]!.type).toBe('manualTrigger');
     expect(n8n.connections).toEqual({});
 
     const roundTrip = translateN8nToWB(n8n);
     expect(roundTrip.diagram.nodes).toHaveLength(1);
     expect(roundTrip.diagram.nodes[0]!.id).toBe('only-node');
-    expect(roundTrip.diagram.nodes[0]!.data.type).toBe('n8n-nodes-base.manualTrigger');
+    expect(roundTrip.diagram.nodes[0]!.data.type).toBe('manualTrigger');
   });
 
   it('branching workflow: If node produces 2 output slots', () => {
@@ -227,37 +227,50 @@ describe('Round-trip fidelity: WB -> n8n -> WB', () => {
 });
 
 describe('Round-trip fidelity: n8n -> WB -> n8n', () => {
-  it('n8n workflow format survives round-trip', () => {
+  it('n8n workflow format survives round-trip (types stripped to short form)', () => {
     const originalN8n = loadFixture<WorkflowParameters>('simple-linear-workflow.n8n.json');
 
-    // Reverse: n8n -> WB
+    // Reverse: n8n -> WB (strips package prefix from data.type)
     const wbResult = translateN8nToWB(originalN8n);
 
-    // Forward: WB -> n8n
+    // Forward: WB -> n8n (uses short type from data.type)
     const roundTripN8n = translateWBToN8n(wbResult);
 
     expect(roundTripN8n.name).toBe(originalN8n.name);
     expect(roundTripN8n.nodes).toHaveLength(originalN8n.nodes.length);
 
+    // Build a map from original full type to expected short type
+    const stripPrefix = (t: string) => {
+      const dot = t.lastIndexOf('.');
+      return dot === -1 ? t : t.substring(dot + 1);
+    };
+
     for (const originalNode of originalN8n.nodes) {
       const roundTripNode = roundTripN8n.nodes.find(n => n.id === originalNode.id);
       expect(roundTripNode).toBeDefined();
-      expect(roundTripNode!.type).toBe(originalNode.type);
+      // Type is intentionally stripped to short form through the round-trip
+      expect(roundTripNode!.type).toBe(stripPrefix(originalNode.type));
       expect(roundTripNode!.name).toBe(originalNode.name);
       expect(roundTripNode!.position).toEqual(originalNode.position);
     }
   });
 
-  it('preserves node types and names through n8n -> WB -> n8n', () => {
+  it('preserves node names through n8n -> WB -> n8n (types stripped to short form)', () => {
     const originalN8n = loadFixture<WorkflowParameters>('simple-linear-workflow.n8n.json');
 
     const wbResult = translateN8nToWB(originalN8n);
     const roundTripN8n = translateWBToN8n(wbResult);
 
+    const stripPrefix = (t: string) => {
+      const dot = t.lastIndexOf('.');
+      return dot === -1 ? t : t.substring(dot + 1);
+    };
+
     for (const originalNode of originalN8n.nodes) {
       const roundTripNode = roundTripN8n.nodes.find(n => n.id === originalNode.id);
       expect(roundTripNode).toBeDefined();
-      expect(roundTripNode!.type).toBe(originalNode.type);
+      // Type is intentionally stripped to short form through the round-trip
+      expect(roundTripNode!.type).toBe(stripPrefix(originalNode.type));
       expect(roundTripNode!.name).toBe(originalNode.name);
     }
   });

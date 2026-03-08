@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import Fastify from 'fastify';
 import type { FastifyInstance } from 'fastify';
-import { themeRoutes } from '../../routes/theme-routes.js';
-import { ThemeService } from '../../services/theme-service.js';
-import type { ThemeStore, ThemeConfig } from '../../services/theme-service.js';
+import { themeRoutes } from '../../routes/theme-routes';
+import { ThemeService } from '../../services/theme-service';
+import type { ThemeStore, ThemeConfig } from '../../services/theme-service';
 
 function createMockStore(): ThemeStore & {
   get: ReturnType<typeof vi.fn>;

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { TenantService } from '../../services/tenant-service.js';
-import type { TenantDb, TenantRecord } from '../../services/tenant-service.js';
+import { TenantService } from '../../services/tenant-service';
+import type { TenantDb, TenantRecord } from '../../services/tenant-service';
 
 function makeTenantRecord(
   overrides: Partial<TenantRecord> = {},

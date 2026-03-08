@@ -7,7 +7,7 @@ import {
   executions,
   executionSteps,
   webhooks,
-} from '../schema/index.js';
+} from '../schema/index';
 
 describe('Schema Definition', () => {
   it('all tenant-scoped tables have tenant_id column', () => {

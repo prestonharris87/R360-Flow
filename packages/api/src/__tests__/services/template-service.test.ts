@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { TemplateService } from '../../services/template-service.js';
+import { TemplateService } from '../../services/template-service';
 import type {
   TemplateStore,
   TemplateRecord,
-} from '../../services/template-service.js';
+} from '../../services/template-service';
 
 function makeTemplateRecord(
   overrides: Partial<TemplateRecord> = {},

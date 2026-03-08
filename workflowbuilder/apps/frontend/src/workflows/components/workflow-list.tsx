@@ -23,7 +23,7 @@ export function WorkflowList({
       setIsLoading(true);
       setError(null);
       const result = await workflowApi.list();
-      setWorkflows(result.workflows);
+      setWorkflows(result);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Failed to load workflows',
@@ -42,7 +42,7 @@ export function WorkflowList({
       try {
         const workflow = await workflowApi.create({
           name,
-          definition_json: {},
+          definitionJson: {},
         });
         setShowCreateDialog(false);
         onOpenWorkflow(workflow);

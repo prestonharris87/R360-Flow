@@ -1,3 +1,3 @@
-export * from './connection.js';
-export * from './schema/index.js';
-export * from './stores/index.js';
+export * from './connection';
+export * from './schema/index';
+export * from './stores/index';

@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import type { TemplateService } from '../services/template-service.js';
+import type { TemplateService } from '../services/template-service';
 
 export interface TemplateRoutesConfig {
   templateService: TemplateService;

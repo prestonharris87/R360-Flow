@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { TenantService, type TenantDb, type TenantRecord } from '../../services/tenant-service.js';
+import { TenantService, type TenantDb, type TenantRecord } from '../../services/tenant-service';
 
 describe('Multi-Tenant Load Tests', () => {
   function createInMemoryTenantDb(): TenantDb {

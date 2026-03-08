@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import type { ThemeService } from '../services/theme-service.js';
+import type { ThemeService } from '../services/theme-service';
 
 export interface ThemeRoutesConfig {
   themeService: ThemeService;

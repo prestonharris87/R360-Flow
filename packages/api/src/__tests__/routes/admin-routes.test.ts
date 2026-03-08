@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import Fastify from 'fastify';
 import type { FastifyInstance } from 'fastify';
-import { adminRoutes } from '../../routes/admin-routes.js';
-import { TenantService } from '../../services/tenant-service.js';
-import type { TenantDb, TenantRecord } from '../../services/tenant-service.js';
+import { adminRoutes } from '../../routes/admin-routes';
+import { TenantService } from '../../services/tenant-service';
+import type { TenantDb, TenantRecord } from '../../services/tenant-service';
 
 const TEST_API_KEY = 'test-admin-api-key-secret';
 

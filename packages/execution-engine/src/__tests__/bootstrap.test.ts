@@ -11,7 +11,7 @@ import {
   isBootstrapped,
   resetBootstrap,
   type BootstrapOptions,
-} from '../bootstrap.js';
+} from '../bootstrap';
 
 const TEST_ENCRYPTION_KEY = 'test-key-32-bytes-long-xxxxxxxx';
 

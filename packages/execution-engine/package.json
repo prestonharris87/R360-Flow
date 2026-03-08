@@ -2,7 +2,6 @@
   "name": "@r360/execution-engine",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -22,6 +21,7 @@
     "@n8n/decorators": "1.11.0",
     "@n8n/di": "0.10.0",
     "@n8n/errors": "0.6.0",
+    "@n8n/n8n-nodes-langchain": "2.11.0",
     "@r360/db": "workspace:*",
     "@r360/json-translator": "workspace:*",
     "@r360/types": "workspace:*",

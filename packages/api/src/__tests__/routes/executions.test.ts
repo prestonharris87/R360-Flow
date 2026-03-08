@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll } from 'vitest';
-import { createTestServer } from '../helpers/test-server.js';
-import { signTestToken } from '../helpers/test-auth.js';
+import { createTestServer } from '../helpers/test-server';
+import { signTestToken } from '../helpers/test-auth';
 
 describe('Execution History API', () => {
   let app: Awaited<ReturnType<typeof createTestServer>>;
@@ -88,11 +88,9 @@ describe('Execution History API', () => {
       expect(response.statusCode).toBe(200);
       const body = response.json();
       expect(body.data).toBeInstanceOf(Array);
-      expect(body.pagination).toBeDefined();
-      expect(body.pagination.page).toBe(1);
-      expect(body.pagination.limit).toBeDefined();
-      expect(body.pagination.total).toBeGreaterThanOrEqual(1);
-      expect(body.pagination.totalPages).toBeGreaterThanOrEqual(1);
+      expect(body.page).toBe(1);
+      expect(body.pageSize).toBeDefined();
+      expect(body.total).toBeGreaterThanOrEqual(1);
     });
 
     it('filters by workflowId', async () => {
@@ -117,7 +115,7 @@ describe('Execution History API', () => {
       expect(response.statusCode).toBe(200);
       const body = response.json();
       for (const exec of body.data) {
-        expect(exec.status).toBe('pending');
+        expect(exec.status).toBe('waiting');
       }
     });
   });

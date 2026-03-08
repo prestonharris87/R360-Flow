@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import Fastify, { type FastifyInstance } from 'fastify';
-import { healthRoutes } from '../../routes/health-routes.js';
-import { HealthService } from '../../services/health-service.js';
-import type { HealthChecker, ComponentHealth } from '../../services/health-service.js';
+import { healthRoutes } from '../../routes/health-routes';
+import { HealthService } from '../../services/health-service';
+import type { HealthChecker, ComponentHealth } from '../../services/health-service';
 
 describe('Health Routes', () => {
   let app: FastifyInstance;

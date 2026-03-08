@@ -1,5 +1,5 @@
-import { getDb } from '../connection.js';
-import { executionSteps } from '../schema/execution-steps.js';
+import { getDb } from '../connection';
+import { executionSteps } from '../schema/execution-steps';
 
 export interface CreateExecutionStepParams {
   execution_id: string;

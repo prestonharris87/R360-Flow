@@ -2,8 +2,8 @@ import {
   pgTable, uuid, varchar, jsonb, boolean,
   timestamp, pgEnum, index, text,
 } from 'drizzle-orm/pg-core';
-import { tenants } from './tenants.js';
-import { users } from './users.js';
+import { tenants } from './tenants';
+import { users } from './users';
 
 export const workflowStatusEnum = pgEnum('workflow_status', [
   'draft', 'active', 'inactive', 'archived',

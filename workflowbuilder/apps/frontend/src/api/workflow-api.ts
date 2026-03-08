@@ -13,32 +13,48 @@ import type { ApiClient } from './api-client';
 export interface WorkflowSummary {
   id: string;
   name: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-  created_by: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
 }
 
 export interface WorkflowDetail extends WorkflowSummary {
-  definition_json: Record<string, unknown>;
+  definitionJson: Record<string, unknown>;
 }
 
-export interface WorkflowListResponse {
-  workflows: WorkflowSummary[];
-  total: number;
-  page: number;
-  pageSize: number;
+interface WorkflowListEnvelope {
+  data: WorkflowSummary[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 }
 
 export interface CreateWorkflowInput {
   name: string;
-  definition_json: Record<string, unknown>;
+  definitionJson: Record<string, unknown>;
 }
 
 export interface UpdateWorkflowInput {
   name?: string;
-  definition_json?: Record<string, unknown>;
-  is_active?: boolean;
+  definitionJson?: Record<string, unknown>;
+  isActive?: boolean;
+}
+
+export interface ImportN8nInput {
+  name?: string;
+  n8nWorkflow: Record<string, unknown>;
+}
+
+export interface ImportN8nResponse {
+  workflow: WorkflowDetail;
+  credentialMapping: {
+    mapped: Array<{ type: string; credentialId: string; credentialName: string }>;
+    unmapped: string[];
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -47,8 +63,15 @@ export interface UpdateWorkflowInput {
 
 export function createWorkflowApi(client: ApiClient) {
   return {
-    list(page = 1, pageSize = 20): Promise<WorkflowListResponse> {
-      return client.get('/workflows', { page, pageSize });
+    async list(page = 1, pageSize = 20): Promise<WorkflowSummary[]> {
+      const response = await client.get<WorkflowListEnvelope>('/workflows', { page, limit: pageSize });
+      if (response && Array.isArray((response as WorkflowListEnvelope).data)) {
+        return (response as WorkflowListEnvelope).data;
+      }
+      if (Array.isArray(response)) {
+        return response as unknown as WorkflowSummary[];
+      }
+      return [];
     },
 
     get(id: string): Promise<WorkflowDetail> {
@@ -65,6 +88,10 @@ export function createWorkflowApi(client: ApiClient) {
 
     delete(id: string): Promise<void> {
       return client.delete(`/workflows/${id}`);
+    },
+
+    importN8n(input: ImportN8nInput): Promise<ImportN8nResponse> {
+      return client.post('/workflows/import', input);
     },
   };
 }

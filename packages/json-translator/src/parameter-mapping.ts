@@ -1,5 +1,5 @@
-import type { INodeParameters, NodeParameterValue } from './types.js';
-import { META_PROPERTIES } from './node-mapping.js';
+import type { INodeParameters, NodeParameterValue } from './types';
+import { META_PROPERTIES } from './node-mapping';
 
 /**
  * Re-export META_PROPERTIES as META_PROPERTY_KEYS for clarity.

@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { CronEvaluator } from './cron-evaluator.js';
+import { CronEvaluator } from './cron-evaluator';
 
 export interface ScheduledWorkflow {
   id: string;

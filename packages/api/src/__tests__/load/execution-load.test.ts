@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { UsageTracker, type UsageStore, type UsageRecord } from '../../billing/usage-tracker.js';
-import { PlanLimitsEnforcer } from '../../billing/plan-limits.js';
+import { UsageTracker, type UsageStore, type UsageRecord } from '../../billing/usage-tracker';
+import { PlanLimitsEnforcer } from '../../billing/plan-limits';
 
 describe('Execution Load Tests', () => {
   function createMockUsageStore(): UsageStore & { data: Map<string, UsageRecord> } {

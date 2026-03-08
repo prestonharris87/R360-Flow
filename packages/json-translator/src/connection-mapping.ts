@@ -1,5 +1,5 @@
-import type { IConnection, IConnections, NodeConnectionType } from './types.js';
-import type { WorkflowBuilderEdge } from './wb-types.js';
+import type { IConnection, IConnections, NodeConnectionType } from './types';
+import type { WorkflowBuilderEdge } from './wb-types';
 
 /**
  * Parse a source handle string to extract connection type and output index.

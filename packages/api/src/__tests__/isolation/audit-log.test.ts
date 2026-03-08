@@ -5,7 +5,7 @@ import {
   type AuditEvent,
   type SecurityEvent,
   type AuditQuery,
-} from '../../audit/audit-logger.js';
+} from '../../audit/audit-logger';
 
 /**
  * In-memory mock implementation of AuditStore for testing.

@@ -8,7 +8,7 @@
         "type": "start-node",
         "position": { "x": 100, "y": 200 },
         "data": {
-          "type": "n8n-nodes-base.manualTrigger",
+          "type": "manualTrigger",
           "icon": "PlayCircle",
           "properties": {
             "label": "Start"
@@ -20,7 +20,7 @@
         "type": "node",
         "position": { "x": 350, "y": 200 },
         "data": {
-          "type": "n8n-nodes-base.set",
+          "type": "set",
           "icon": "PenTool",
           "properties": {
             "label": "Set Values",
@@ -38,7 +38,7 @@
         "type": "node",
         "position": { "x": 600, "y": 200 },
         "data": {
-          "type": "n8n-nodes-base.httpRequest",
+          "type": "httpRequest",
           "icon": "Globe",
           "properties": {
             "label": "Send Request",

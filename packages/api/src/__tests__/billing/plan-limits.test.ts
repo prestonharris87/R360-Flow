@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { PlanLimitsEnforcer } from '../../billing/plan-limits.js';
-import { UsageTracker, type UsageStore, type UsageRecord } from '../../billing/usage-tracker.js';
+import { PlanLimitsEnforcer } from '../../billing/plan-limits';
+import { UsageTracker, type UsageStore, type UsageRecord } from '../../billing/usage-tracker';
 
 function createMockUsageRecord(overrides: Partial<UsageRecord> = {}): UsageRecord {
   return {

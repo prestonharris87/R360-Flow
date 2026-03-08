@@ -3,7 +3,7 @@ import {
   ExecutionMonitor,
   type ExecutionEvent,
   type ExecutionEventType,
-} from '../../realtime/execution-monitor.js';
+} from '../../realtime/execution-monitor';
 
 function makeEvent(
   overrides: Partial<ExecutionEvent> = {},

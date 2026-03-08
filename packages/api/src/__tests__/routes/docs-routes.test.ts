@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from 'vitest';
-import { createTestServer } from '../helpers/test-server.js';
+import { createTestServer } from '../helpers/test-server';
 
 describe('API Documentation Routes', () => {
   let app: Awaited<ReturnType<typeof createTestServer>>;

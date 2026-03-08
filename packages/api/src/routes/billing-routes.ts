@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import Stripe from 'stripe';
-import type { StripeWebhookHandler } from '../billing/stripe-webhook-handler.js';
+import type { StripeWebhookHandler } from '../billing/stripe-webhook-handler';
 
 export interface BillingRoutesConfig {
   stripeSecretKey: string;
@@ -12,6 +12,14 @@ export async function billingRoutes(
   fastify: FastifyInstance,
   opts: BillingRoutesConfig,
 ): Promise<void> {
+  // Skip registration when no Stripe key is configured (dev/test environments)
+  if (!opts.stripeSecretKey) {
+    fastify.post('/api/billing/webhook', async (_request, reply) => {
+      return reply.status(503).send({ error: 'Billing not configured' });
+    });
+    return;
+  }
+
   const stripe = new Stripe(opts.stripeSecretKey);
 
   fastify.post(

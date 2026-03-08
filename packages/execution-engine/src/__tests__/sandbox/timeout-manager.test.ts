@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { TimeoutManager, type TimeoutConfig } from '../../sandbox/timeout-manager.js';
+import { TimeoutManager, type TimeoutConfig } from '../../sandbox/timeout-manager';
 
 describe('Timeout: TimeoutManager', () => {
   const manager = new TimeoutManager();

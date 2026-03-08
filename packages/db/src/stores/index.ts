@@ -1,2 +1,2 @@
-export { executionStore } from './execution-store.js';
-export { executionStepStore } from './execution-step-store.js';
+export { executionStore } from './execution-store';
+export { executionStepStore } from './execution-step-store';

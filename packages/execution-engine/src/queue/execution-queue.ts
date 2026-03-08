@@ -7,7 +7,7 @@ import {
   getPriorityForPlan,
   getLimitsForPlan,
   createDefaultQueueConfig,
-} from './queue-config.js';
+} from './queue-config';
 
 export interface ExecutionJobData {
   tenantId: string;

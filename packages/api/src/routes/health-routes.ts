@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import type { HealthService } from '../services/health-service.js';
+import type { HealthService } from '../services/health-service';
 
 export interface HealthRoutesConfig {
   healthService: HealthService;

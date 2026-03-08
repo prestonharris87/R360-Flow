@@ -1,6 +1,6 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import type { Server as HttpServer } from 'node:http';
-import type { ExecutionMonitor, ExecutionEvent } from './execution-monitor.js';
+import type { ExecutionMonitor, ExecutionEvent } from './execution-monitor';
 
 export interface WSAuthenticator {
   authenticateToken(token: string): Promise<{ tenantId: string; userId: string } | null>;

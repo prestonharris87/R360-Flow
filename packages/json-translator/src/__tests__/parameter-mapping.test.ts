@@ -3,7 +3,7 @@ import {
   mapWBPropertiesToN8nParameters,
   mapN8nParametersToWBProperties,
   META_PROPERTY_KEYS,
-} from '../parameter-mapping.js';
+} from '../parameter-mapping';
 
 describe('mapWBPropertiesToN8nParameters', () => {
   it('passes through primitive values unchanged', () => {

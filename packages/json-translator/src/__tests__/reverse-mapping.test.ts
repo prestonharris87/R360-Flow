@@ -5,9 +5,9 @@ import {
   resolveWBNodeType,
   resolveIcon,
   TRIGGER_TYPES,
-} from '../reverse-mapping.js';
-import type { INode, IConnections } from '../types.js';
-import type { WorkflowBuilderEdge } from '../wb-types.js';
+} from '../reverse-mapping';
+import type { INode, IConnections } from '../types';
+import type { WorkflowBuilderEdge } from '../wb-types';
 
 // ---------------------------------------------------------------------------
 // resolveWBNodeType
@@ -80,7 +80,7 @@ describe('mapN8nToWBNode', () => {
 
     expect(wbNode.id).toBe('abc-123');
     expect(wbNode.position).toEqual({ x: 250, y: 100 });
-    expect(wbNode.data.type).toBe('n8n-nodes-base.manualTrigger');
+    expect(wbNode.data.type).toBe('manualTrigger');
     expect(wbNode.data.properties.label).toBe('When clicking "Test workflow"');
     expect(wbNode.type).toBe('start-node');
   });
@@ -207,7 +207,7 @@ describe('mapN8nToWBNode', () => {
     expect(wbNode.data.properties.typeVersion).toBe(3);
   });
 
-  it('does NOT include typeVersion in properties when == 1', () => {
+  it('always includes typeVersion in properties even when == 1', () => {
     const n8nNode: INode = {
       id: 'v1-node',
       name: 'Edit Fields v1',
@@ -218,7 +218,7 @@ describe('mapN8nToWBNode', () => {
     };
 
     const wbNode = mapN8nToWBNode(n8nNode);
-    expect(wbNode.data.properties).not.toHaveProperty('typeVersion');
+    expect(wbNode.data.properties.typeVersion).toBe(1);
   });
 
   it('carries disabled to properties', () => {
@@ -334,7 +334,7 @@ describe('mapN8nToWBNode', () => {
     };
 
     const wbNode = mapN8nToWBNode(n8nNode);
-    expect(wbNode.data.properties).not.toHaveProperty('typeVersion');
+    expect(wbNode.data.properties.typeVersion).toBe(1);
     expect(wbNode.data.properties).not.toHaveProperty('disabled');
     expect(wbNode.data.properties).not.toHaveProperty('continueOnFail');
     expect(wbNode.data.properties).not.toHaveProperty('onError');

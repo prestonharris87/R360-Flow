@@ -7,12 +7,85 @@ import {
   UuidParamSchema,
   TriggerExecutionSchema,
 } from '@r360/types';
-import { requireRole } from '../middleware/auth.js';
+import { requireRole } from '../middleware/auth';
 import { z } from 'zod';
 import {
   translateIfNeeded,
   executeWorkflowForTenant,
-} from '../services/execution-bridge.js';
+} from '../services/execution-bridge';
+
+// ---------------------------------------------------------------------------
+// Response transformation helpers
+// Map Drizzle camelCase output -> camelCase REST contract the frontend expects
+// ---------------------------------------------------------------------------
+
+const EXEC_STATUS_MAP: Record<string, string> = {
+  pending: 'waiting',
+  running: 'running',
+  success: 'success',
+  error: 'failed',
+  cancelled: 'cancelled',
+  timeout: 'failed',
+};
+
+const STEP_STATUS_MAP: Record<string, string> = {
+  pending: 'running',
+  running: 'running',
+  success: 'success',
+  error: 'failed',
+  skipped: 'skipped',
+};
+
+function extractErrorMessage(error: unknown): string | null {
+  if (error == null) return null;
+  if (typeof error === 'string') return error;
+  if (typeof error === 'object' && 'message' in error) {
+    return String((error as { message: unknown }).message);
+  }
+  return String(error);
+}
+
+function toExecutionSummary(row: Record<string, unknown>, workflowName?: string) {
+  const startedAt = row.startedAt as string | null;
+  const finishedAt = row.finishedAt as string | null;
+  let durationMs: number | null = null;
+  if (startedAt && finishedAt) {
+    durationMs = new Date(finishedAt).getTime() - new Date(startedAt).getTime();
+  }
+  return {
+    id: row.id,
+    workflowId: row.workflowId,
+    workflowName: workflowName ?? (row as Record<string, unknown>).workflowName ?? '',
+    status: EXEC_STATUS_MAP[row.status as string] ?? row.status,
+    startedAt: startedAt,
+    finishedAt: finishedAt,
+    durationMs: durationMs,
+    errorMessage: extractErrorMessage(row.error),
+    createdAt: row.createdAt,
+  };
+}
+
+function toExecutionStep(step: Record<string, unknown>) {
+  const error = step.error as Record<string, unknown> | null;
+  return {
+    id: step.id,
+    nodeName: step.nodeName,
+    nodeType: step.nodeType,
+    status: STEP_STATUS_MAP[step.status as string] ?? step.status,
+    startedAt: step.startedAt,
+    finishedAt: step.finishedAt,
+    inputData: step.inputJson ?? null,
+    outputData: step.outputJson ?? null,
+    errorMessage: extractErrorMessage(step.error),
+    errorDetail: error ? {
+      message: error.message ?? null,
+      description: error.description ?? null,
+      httpCode: error.httpCode ?? null,
+      type: error.type ?? null,
+      context: error.context ?? null,
+    } : null,
+  };
+}
 
 const ExecutionQuerySchema = PaginationSchema.extend({
   workflowId: z.string().uuid().optional(),
@@ -167,10 +240,22 @@ export async function executionRoutes(app: FastifyInstance): Promise<void> {
 
     const whereClause = and(...conditions);
 
-    const [data, countResult] = await Promise.all([
+    const [rows, countResult] = await Promise.all([
       db
-        .select()
+        .select({
+          id: executions.id,
+          tenantId: executions.tenantId,
+          workflowId: executions.workflowId,
+          status: executions.status,
+          mode: executions.mode,
+          error: executions.error,
+          startedAt: executions.startedAt,
+          finishedAt: executions.finishedAt,
+          createdAt: executions.createdAt,
+          workflowName: workflows.name,
+        })
         .from(executions)
+        .leftJoin(workflows, eq(executions.workflowId, workflows.id))
         .where(whereClause)
         .orderBy(desc(executions.createdAt))
         .limit(query.limit)
@@ -184,13 +269,10 @@ export async function executionRoutes(app: FastifyInstance): Promise<void> {
     const total = countResult[0]?.total ?? 0;
 
     return reply.send({
-      data,
-      pagination: {
-        page: query.page,
-        limit: query.limit,
-        total,
-        totalPages: Math.ceil(total / query.limit),
-      },
+      data: rows.map((r) => toExecutionSummary(r as Record<string, unknown>, r.workflowName ?? '')),
+      total,
+      page: query.page,
+      pageSize: query.limit,
     });
   });
 
@@ -227,6 +309,12 @@ export async function executionRoutes(app: FastifyInstance): Promise<void> {
       });
     }
 
+    // Look up workflow name
+    const [wf] = await db
+      .select({ name: workflows.name })
+      .from(workflows)
+      .where(eq(workflows.id, execution.workflowId));
+
     // Fetch associated steps
     const steps = await db
       .select()
@@ -234,9 +322,11 @@ export async function executionRoutes(app: FastifyInstance): Promise<void> {
       .where(eq(executionSteps.executionId, execution.id))
       .orderBy(executionSteps.startedAt);
 
+    const summary = toExecutionSummary(execution as Record<string, unknown>, wf?.name ?? '');
+
     return reply.send({
-      ...execution,
-      steps,
+      ...summary,
+      steps: steps.map((s) => toExecutionStep(s as Record<string, unknown>)),
     });
   });
 }

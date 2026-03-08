@@ -134,7 +134,7 @@ describe('ApiClient', () => {
     it('POST sends body as JSON', async () => {
       mockFetch.mockResolvedValueOnce(okResponse({ id: 'wf-1' }, 201));
 
-      const body = { name: 'My Workflow', definition_json: {} };
+      const body = { name: 'My Workflow', definitionJson: {} };
       await client.post('/workflows', body);
 
       expect(mockFetch.mock.calls[0][1].method).toBe('POST');

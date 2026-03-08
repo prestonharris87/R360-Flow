@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { ExecutionJobData } from '../../queue/execution-queue.js';
+import type { ExecutionJobData } from '../../queue/execution-queue';
 
 // ----- BullMQ mocks -----
 const mockAdd = vi.fn();
@@ -42,8 +42,8 @@ vi.mock('bullmq', () => {
 // Mock connection (ConnectionOptions compatible)
 const mockConnection = { host: 'localhost', port: 6379 };
 
-// Dynamic import after mocks are set up
-const { ExecutionQueue } = await import('../../queue/execution-queue.js');
+// Require after mocks are set up
+const { ExecutionQueue } = require('../../queue/execution-queue');
 
 function createJobData(overrides: Partial<ExecutionJobData> = {}): ExecutionJobData {
   return {

@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { MonitoringService } from '../../services/monitoring-service.js';
+import { MonitoringService } from '../../services/monitoring-service';
 import type {
   ComparisonOp,
   AlertSeverity,
-} from '../../services/monitoring-service.js';
+} from '../../services/monitoring-service';
 
 describe('MonitoringService', () => {
   let service: MonitoringService;

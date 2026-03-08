@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { VersionService } from '../../services/version-service.js';
+import { VersionService } from '../../services/version-service';
 import type {
   VersionStore,
   WorkflowVersion,
-} from '../../services/version-service.js';
+} from '../../services/version-service';
 
 /**
  * In-memory implementation of VersionStore for testing.

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { translateWBToN8n, translateN8nToWB } from '../index.js';
-import type { DiagramModel } from '../wb-types.js';
+import { translateWBToN8n, translateN8nToWB } from '../index';
+import type { DiagramModel } from '../wb-types';
 
 describe('Phase 2 Integration: Full Translation Pipeline', () => {
   it('handles a complex workflow with multiple node types', () => {

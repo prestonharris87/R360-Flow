@@ -1,4 +1,5 @@
 import { type ReactNode } from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './use-auth';
 
 interface AuthGuardProps {
@@ -7,6 +8,7 @@ interface AuthGuardProps {
 
 export function AuthGuard({ children }: AuthGuardProps) {
   const { isAuthenticated, isLoading } = useAuth();
+  const location = useLocation();
 
   if (isLoading) {
     return (
@@ -17,15 +19,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
   }
 
   if (!isAuthenticated) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh', gap: '1rem' }}>
-        <h2>Sign in required</h2>
-        <p>Please sign in to access the workflow editor.</p>
-        <button onClick={() => window.location.href = '/auth/login'} type="button">
-          Sign In
-        </button>
-      </div>
-    );
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   return <>{children}</>;

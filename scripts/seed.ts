@@ -1,3 +1,5 @@
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import postgres from 'postgres';
 
 const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://r360:r360_dev_password@localhost:5432/r360flow';
@@ -181,6 +183,52 @@ async function seed() {
     `, [DEV_USER_ID, DEV_TENANT_ID, 'dev-user-1', 'admin@r360.dev', 'Dev Admin', 'owner']);
 
     console.log('  User created: admin@r360.dev (role: owner)');
+
+    // Seed workflows from JSON files
+    const seedDataDir = join(import.meta.dirname ?? __dirname, 'seed-data');
+
+    const helloWorldJson = JSON.parse(readFileSync(join(seedDataDir, 'hello-world-workflow.json'), 'utf-8'));
+    const porDemoJson = JSON.parse(readFileSync(join(seedDataDir, 'por-demo-ai-automation.json'), 'utf-8'));
+
+    // Hello World Workflow — simple manual trigger, ready to execute
+    await sql.unsafe(`
+      INSERT INTO workflows (id, tenant_id, name, description, status, is_active, definition_json, created_by, updated_by)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8)
+      ON CONFLICT (id) DO UPDATE SET
+        name = EXCLUDED.name,
+        definition_json = EXCLUDED.definition_json,
+        updated_at = NOW()
+    `, [
+      '10000000-0000-0000-0000-000000000010',
+      DEV_TENANT_ID,
+      helloWorldJson.name || 'Hello World Workflow',
+      'Simple manual-trigger hello world workflow exported from n8n',
+      'active',
+      true,
+      JSON.stringify(helloWorldJson.definitionJson || helloWorldJson),
+      DEV_USER_ID,
+    ]);
+
+    // POR Demo AI Automation — requires Airtop + OpenAI credentials configured via the API
+    await sql.unsafe(`
+      INSERT INTO workflows (id, tenant_id, name, description, status, is_active, definition_json, created_by, updated_by)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8)
+      ON CONFLICT (id) DO UPDATE SET
+        name = EXCLUDED.name,
+        definition_json = EXCLUDED.definition_json,
+        updated_at = NOW()
+    `, [
+      '10000000-0000-0000-0000-000000000011',
+      DEV_TENANT_ID,
+      porDemoJson.name || 'POR Demo AI Automation',
+      'AI automation demo requiring Airtop + OpenAI credentials',
+      'draft',
+      false,
+      JSON.stringify(porDemoJson.definitionJson || porDemoJson),
+      DEV_USER_ID,
+    ]);
+
+    console.log('  Seeded 2 workflows: Hello World Workflow, POR Demo AI Automation');
 
     console.log('\nSeed complete! Dev credentials:');
     console.log('  Email:     admin@r360.dev');

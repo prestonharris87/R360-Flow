@@ -1,4 +1,4 @@
-import type { UsageTracker } from './usage-tracker.js';
+import type { UsageTracker } from './usage-tracker';
 
 export type PlanTier = 'free' | 'pro' | 'enterprise';
 

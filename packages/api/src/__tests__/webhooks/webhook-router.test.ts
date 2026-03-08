@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { WebhookRouter } from '../../webhooks/webhook-router.js';
-import type { WebhookRequest, ExecutionQueueInterface } from '../../webhooks/webhook-router.js';
-import { WebhookRegistry } from '../../webhooks/webhook-registry.js';
+import { WebhookRouter } from '../../webhooks/webhook-router';
+import type { WebhookRequest, ExecutionQueueInterface } from '../../webhooks/webhook-router';
+import { WebhookRegistry } from '../../webhooks/webhook-registry';
 
 describe('WebhookRouter', () => {
   let registry: WebhookRegistry;

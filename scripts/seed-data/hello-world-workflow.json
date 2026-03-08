@@ -1,0 +1,56 @@
+{
+  "name": "Hello World Workflow",
+  "definitionJson": {
+    "nodes": [
+      {
+        "name": "When clicking 'Test workflow'",
+        "type": "n8n-nodes-base.manualTrigger",
+        "position": [
+          256,
+          304
+        ],
+        "parameters": {}
+      },
+      {
+        "name": "Hello World",
+        "type": "n8n-nodes-base.set",
+        "position": [
+          720,
+          300
+        ],
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "message-field",
+                "name": "message",
+                "value": "Hello World!",
+                "type": "string"
+              },
+              {
+                "id": "timestamp-field",
+                "name": "timestamp",
+                "value": "={{ $now }}",
+                "type": "string"
+              }
+            ]
+          },
+          "options": {}
+        }
+      }
+    ],
+    "connections": {
+      "When clicking 'Test workflow'": {
+        "main": [
+          [
+            {
+              "node": "Hello World",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    }
+  }
+}

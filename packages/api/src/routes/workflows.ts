@@ -8,9 +8,78 @@ import {
   PaginationSchema,
   UuidParamSchema,
 } from '@r360/types';
-import { requireRole } from '../middleware/auth.js';
+import { requireRole } from '../middleware/auth';
+import { translateN8nToWB } from '@r360/json-translator';
+import { autoMapCredentials } from '../services/credential-mapper';
 
 export async function workflowRoutes(app: FastifyInstance): Promise<void> {
+  // IMPORT n8n workflow
+  app.post(
+    '/api/workflows/import',
+    { preHandler: [requireRole('member')] },
+    async (request, reply) => {
+      const body = request.body as { name?: string; n8nWorkflow?: unknown };
+
+      // Validate input
+      if (!body || !body.n8nWorkflow || typeof body.n8nWorkflow !== 'object') {
+        return reply.status(400).send({
+          error: 'Validation Error',
+          message: 'Request body must include n8nWorkflow object',
+          statusCode: 400,
+        });
+      }
+
+      const n8nWorkflow = body.n8nWorkflow as Record<string, unknown>;
+
+      // Verify it has nodes array (basic n8n format check)
+      if (!Array.isArray(n8nWorkflow.nodes)) {
+        return reply.status(400).send({
+          error: 'Validation Error',
+          message: 'n8nWorkflow must have a nodes array',
+          statusCode: 400,
+        });
+      }
+
+      // Translate n8n format to DiagramModel (Workflow Builder format)
+      const diagramModel = translateN8nToWB(n8nWorkflow as any);
+
+      // Auto-map credentials to tenant's credentials
+      const { tenantId, userId } = request.tenantContext;
+      const { nodes: mappedNodes, credentialMapping } = await autoMapCredentials(
+        diagramModel.diagram.nodes as any,
+        tenantId,
+      );
+
+      // Build the definitionJson in DiagramModel format
+      const definitionJson = {
+        name: diagramModel.name,
+        layoutDirection: diagramModel.layoutDirection,
+        nodes: mappedNodes,
+        edges: diagramModel.diagram.edges,
+      };
+
+      // Use provided name or fall back to n8n workflow name
+      const workflowName = body.name || (n8nWorkflow.name as string) || 'Imported Workflow';
+
+      const db = getDb();
+      const [workflow] = await db
+        .insert(workflows)
+        .values({
+          tenantId,
+          name: workflowName,
+          definitionJson,
+          createdBy: userId,
+          updatedBy: userId,
+        })
+        .returning();
+
+      return reply.status(201).send({
+        workflow,
+        credentialMapping,
+      });
+    }
+  );
+
   // CREATE
   app.post(
     '/api/workflows',

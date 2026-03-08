@@ -41,11 +41,11 @@ const sampleDiagram: DiagramModel = {
 const sampleWorkflow: WorkflowDetail = {
   id: 'wf-123',
   name: 'Test Workflow',
-  is_active: false,
-  created_at: '2026-03-01T00:00:00Z',
-  updated_at: '2026-03-01T00:00:00Z',
-  created_by: 'user-1',
-  definition_json: sampleDiagram,
+  isActive: false,
+  createdAt: '2026-03-01T00:00:00Z',
+  updatedAt: '2026-03-01T00:00:00Z',
+  createdBy: 'user-1',
+  definitionJson: sampleDiagram,
 };
 
 describe('useWorkflowPersistence', () => {
@@ -83,7 +83,7 @@ describe('useWorkflowPersistence', () => {
 
     expect(mockWorkflowApi.create).toHaveBeenCalledWith({
       name: 'Test Workflow',
-      definition_json: sampleDiagram,
+      definitionJson: sampleDiagram,
     });
   });
 
@@ -91,7 +91,7 @@ describe('useWorkflowPersistence', () => {
     mockWorkflowApi.get.mockResolvedValueOnce(sampleWorkflow);
     mockWorkflowApi.update.mockResolvedValueOnce({
       ...sampleWorkflow,
-      updated_at: '2026-03-02T00:00:00Z',
+      updatedAt: '2026-03-02T00:00:00Z',
     });
 
     const { result } = renderHook(() => useWorkflowPersistence(mockWorkflowApi));
@@ -107,7 +107,7 @@ describe('useWorkflowPersistence', () => {
 
     expect(mockWorkflowApi.update).toHaveBeenCalledWith('wf-123', {
       name: 'Updated Name',
-      definition_json: updatedDiagram,
+      definitionJson: updatedDiagram,
     });
   });
 

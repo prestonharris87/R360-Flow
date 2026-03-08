@@ -50,3 +50,28 @@ export type TriggerExecutionInput = z.infer<typeof TriggerExecutionSchema>;
 export const UuidParamSchema = z.object({
   id: z.string().uuid(),
 });
+
+// -- Credential List Query --
+export const CredentialListQuerySchema = PaginationSchema.extend({
+  type: z.string().min(1).optional(),
+  nodeType: z.string().min(1).optional(),
+});
+export type CredentialListQuery = z.infer<typeof CredentialListQuerySchema>;
+
+// -- Credential Types (metadata endpoints) --
+export const CredentialTypeQuerySchema = z.object({
+  nodeType: z.string().min(1).optional(),
+  search: z.string().min(1).optional(),
+});
+export type CredentialTypeQuery = z.infer<typeof CredentialTypeQuerySchema>;
+
+export const CredentialTypeParamSchema = z.object({
+  name: z.string().min(1),
+});
+export type CredentialTypeParam = z.infer<typeof CredentialTypeParamSchema>;
+
+export const CredentialTypeFilterQuerySchema = z.object({
+  expressions: z.string().min(1),
+  search: z.string().min(1).optional(),
+});
+export type CredentialTypeFilterQuery = z.infer<typeof CredentialTypeFilterQuerySchema>;

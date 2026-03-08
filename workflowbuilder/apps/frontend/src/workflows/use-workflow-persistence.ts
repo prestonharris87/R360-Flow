@@ -6,15 +6,15 @@ export interface WorkflowApi {
   list: (
     page?: number,
     pageSize?: number,
-  ) => Promise<{ workflows: WorkflowDetail[]; total: number }>;
+  ) => Promise<WorkflowDetail[]>;
   get: (id: string) => Promise<WorkflowDetail>;
   create: (input: {
     name: string;
-    definition_json: DiagramModel;
+    definitionJson: DiagramModel;
   }) => Promise<WorkflowDetail>;
   update: (
     id: string,
-    input: { name?: string; definition_json?: DiagramModel },
+    input: { name?: string; definitionJson?: DiagramModel },
   ) => Promise<WorkflowDetail>;
   delete: (id: string) => Promise<void>;
 }
@@ -50,12 +50,12 @@ export function useWorkflowPersistence(api: WorkflowApi) {
         if (currentWorkflow) {
           saved = await api.update(currentWorkflow.id, {
             name: diagram.name,
-            definition_json: diagram,
+            definitionJson: diagram,
           });
         } else {
           saved = await api.create({
             name: diagram.name,
-            definition_json: diagram,
+            definitionJson: diagram,
           });
         }
         setCurrentWorkflow(saved);

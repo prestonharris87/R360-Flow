@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { createTestServer } from '../helpers/test-server.js';
-import { signTestToken } from '../helpers/test-auth.js';
+import { createTestServer } from '../helpers/test-server';
+import { signTestToken } from '../helpers/test-auth';
 import type { FastifyInstance } from 'fastify';
 
 describe('Credential CRUD API', () => {

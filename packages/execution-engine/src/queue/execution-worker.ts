@@ -1,7 +1,7 @@
 import { Job, Worker } from 'bullmq';
 import type { ConnectionOptions } from 'bullmq';
-import type { ExecutionJobData } from './execution-queue.js';
-import type { ExecutionService } from '../execution-service.js';
+import type { ExecutionJobData } from './execution-queue';
+import type { ExecutionService } from '../execution-service';
 
 export interface ExecutionWorkerOptions {
   concurrency: number;

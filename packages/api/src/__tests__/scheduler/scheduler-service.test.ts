@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { SchedulerService } from '../../scheduler/scheduler-service.js';
+import { SchedulerService } from '../../scheduler/scheduler-service';
 import type {
   SchedulerDb,
   SchedulerExecutionQueue,
   ScheduledWorkflow,
-} from '../../scheduler/scheduler-service.js';
+} from '../../scheduler/scheduler-service';
 
 function createMockDb(workflows: ScheduledWorkflow[] = []): SchedulerDb {
   return {

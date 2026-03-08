@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { WebhookRegistry } from '../../webhooks/webhook-registry.js';
-import type { WebhookRegistration } from '../../webhooks/webhook-registry.js';
+import { WebhookRegistry } from '../../webhooks/webhook-registry';
+import type { WebhookRegistration } from '../../webhooks/webhook-registry';
 
 describe('WebhookRegistry', () => {
   let registry: WebhookRegistry;

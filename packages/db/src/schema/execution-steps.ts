@@ -2,7 +2,7 @@ import {
   pgTable, uuid, varchar, jsonb,
   timestamp, pgEnum, index,
 } from 'drizzle-orm/pg-core';
-import { executions } from './executions.js';
+import { executions } from './executions';
 
 export const stepStatusEnum = pgEnum('step_status', [
   'pending', 'running', 'success', 'error', 'skipped',

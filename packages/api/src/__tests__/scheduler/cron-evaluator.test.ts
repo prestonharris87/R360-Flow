@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { CronEvaluator } from '../../scheduler/cron-evaluator.js';
+import { CronEvaluator } from '../../scheduler/cron-evaluator';
 
 describe('CronEvaluator', () => {
   const evaluator = new CronEvaluator();

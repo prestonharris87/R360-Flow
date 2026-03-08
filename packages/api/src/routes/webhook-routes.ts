@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import type { WebhookRouter } from '../webhooks/webhook-router.js';
+import type { WebhookRouter } from '../webhooks/webhook-router';
 
 export function webhookRoutes(webhookRouter: WebhookRouter) {
   return async function (app: FastifyInstance): Promise<void> {

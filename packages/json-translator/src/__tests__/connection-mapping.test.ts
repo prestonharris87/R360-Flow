@@ -3,8 +3,8 @@ import {
   mapEdgesToConnections,
   parseSourceHandle,
   parseTargetHandle,
-} from '../connection-mapping.js';
-import type { WorkflowBuilderEdge } from '../wb-types.js';
+} from '../connection-mapping';
+import type { WorkflowBuilderEdge } from '../wb-types';
 
 describe('parseSourceHandle', () => {
   it('returns main/0 for null', () => {

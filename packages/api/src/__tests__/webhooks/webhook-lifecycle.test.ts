@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { WebhookLifecycleManager } from '../../webhooks/webhook-lifecycle.js';
-import { WebhookRegistry } from '../../webhooks/webhook-registry.js';
+import { WebhookLifecycleManager } from '../../webhooks/webhook-lifecycle';
+import { WebhookRegistry } from '../../webhooks/webhook-registry';
 
 describe('WebhookLifecycleManager', () => {
   let registry: WebhookRegistry;

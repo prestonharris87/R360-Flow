@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll } from 'vitest';
-import { createTestServer } from '../helpers/test-server.js';
-import { signTestToken } from '../helpers/test-auth.js';
+import { createTestServer } from '../helpers/test-server';
+import { signTestToken } from '../helpers/test-auth';
 
 describe('Workflow CRUD API', () => {
   let app: Awaited<ReturnType<typeof createTestServer>>;

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { getPriorityForPlan, getLimitsForPlan, createDefaultQueueConfig } from '../../queue/queue-config.js';
-import type { TenantPlan } from '../../queue/queue-config.js';
+import { getPriorityForPlan, getLimitsForPlan, createDefaultQueueConfig } from '../../queue/queue-config';
+import type { TenantPlan } from '../../queue/queue-config';
 
 describe('QueueConfig', () => {
   it('should return correct priority for each plan tier', () => {

@@ -15,10 +15,11 @@ import {
   bootstrapN8nContainer,
   isBootstrapped,
 } from '@r360/execution-engine';
+import type { CredentialLookupFn } from '@r360/execution-engine';
 import { translateWBToN8n } from '@r360/json-translator';
 import type { WorkflowParameters } from '@r360/json-translator';
 import { getDb } from '@r360/db';
-import { executions, executionSteps } from '@r360/db';
+import { executions, executionSteps, credentials } from '@r360/db';
 import { eq, and } from 'drizzle-orm';
 import type { IRun } from 'n8n-workflow';
 
@@ -42,6 +43,37 @@ export async function ensureBootstrapped(): Promise<void> {
 }
 
 /**
+ * Credential lookup function that queries the DB by tenant_id and credential id.
+ *
+ * The Drizzle schema uses camelCase JS property names (tenantId, encryptedData)
+ * but TenantCredentialsHelper expects snake_case (tenant_id, encrypted_data),
+ * so we map the result accordingly.
+ */
+const credentialLookupFn: CredentialLookupFn = async (tenantId, credentialId) => {
+  const db = getDb();
+  const rows = await db
+    .select()
+    .from(credentials)
+    .where(
+      and(
+        eq(credentials.tenantId, tenantId),
+        eq(credentials.id, credentialId)
+      )
+    );
+
+  const row = rows[0];
+  if (!row) return null;
+
+  return {
+    id: row.id,
+    tenant_id: row.tenantId,
+    name: row.name,
+    type: row.type,
+    encrypted_data: row.encryptedData,
+  };
+};
+
+/**
  * Get or create the singleton ExecutionService.
  * Initializes R360NodeTypes and DI bootstrap on first call.
  */
@@ -55,7 +87,7 @@ export async function getExecutionService(): Promise<ExecutionService> {
   nodeTypes = new R360NodeTypes();
   await nodeTypes.init();
 
-  executionService = new ExecutionService(nodeTypes);
+  executionService = new ExecutionService(nodeTypes, credentialLookupFn);
   return executionService;
 }
 
@@ -193,7 +225,7 @@ export async function executeWorkflowForTenant(
  *
  * Events:
  * - nodeExecuteBefore -> insert a "running" step
- * - nodeExecuteAfter -> insert a "success"/"error" step with output data
+ * - nodeExecuteAfter -> update the "running" step to "success"/"error" with output data
  * - workflowExecuteBefore / workflowExecuteAfter -> logged but not written as steps
  *   (workflow-level status is handled in the parent function)
  */
@@ -209,10 +241,12 @@ async function handleHookEvent(
   switch (event) {
     case 'nodeExecuteBefore': {
       const nodeName = (payload.nodeName as string) ?? 'unknown';
+      const nodeType = (payload.nodeType as string) ?? null;
       await db.insert(executionSteps).values({
         executionId,
         nodeId: nodeName,
         nodeName,
+        nodeType,
         status: 'running',
         startedAt: new Date(),
       });
@@ -225,19 +259,57 @@ async function handleHookEvent(
       const stepStatus =
         (taskData?.executionStatus as string) === 'error' ? 'error' : 'success';
 
-      // Update the existing "running" step to completed status
-      // We insert a new record since the hook fires independently
-      await db.insert(executionSteps).values({
-        executionId,
-        nodeId: nodeName,
-        nodeName,
-        status: stepStatus,
-        outputJson: taskData?.data ? JSON.parse(JSON.stringify(taskData.data)) : null,
-        startedAt: taskData?.startTime
-          ? new Date(taskData.startTime as number)
-          : new Date(),
-        finishedAt: new Date(),
-      });
+      // Extract error details if present
+      let errorJson: Record<string, unknown> | null = null;
+      if (taskData?.error) {
+        const err = taskData.error as Record<string, unknown>;
+        errorJson = {
+          message: err.message ?? 'Unknown error',
+          description: err.description ?? null,
+          code: err.code ?? null,
+          httpCode: err.httpCode ?? null,
+          type: err.constructor?.name ?? err.name ?? 'Error',
+          context: err.context ?? null,
+        };
+      }
+
+      // Extract output data (flatten main connection output for readability)
+      let outputJson: unknown = null;
+      if (taskData?.data) {
+        const connections = taskData.data as Record<string, unknown>;
+        const mainOutput = connections.main as Array<unknown[] | null> | undefined;
+        if (mainOutput?.[0]) {
+          // Extract just the json data from INodeExecutionData items
+          const items = mainOutput[0] as Array<{ json?: unknown }>;
+          outputJson = items.length === 1
+            ? items[0]?.json ?? items[0]
+            : items.map(item => item?.json ?? item);
+        } else {
+          outputJson = connections;
+        }
+      }
+
+      // Extract input data (resolved from previous node's output by the hook)
+      const inputData = payload.inputData as unknown;
+      const inputJson = inputData ? JSON.parse(JSON.stringify(inputData)) : null;
+
+      // Update the existing "running" step to its final status
+      await db
+        .update(executionSteps)
+        .set({
+          status: stepStatus,
+          inputJson,
+          outputJson: outputJson ? JSON.parse(JSON.stringify(outputJson)) : null,
+          error: errorJson,
+          finishedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(executionSteps.executionId, executionId),
+            eq(executionSteps.nodeId, nodeName),
+            eq(executionSteps.status, 'running')
+          )
+        );
       break;
     }
 

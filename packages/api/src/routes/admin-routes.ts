@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import type { TenantService } from '../services/tenant-service.js';
+import type { TenantService } from '../services/tenant-service';
 
 export interface AdminRoutesConfig {
   adminApiKey: string;

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { sanitizeInput } from '../../middleware/security.js';
-import { TenantService } from '../../services/tenant-service.js';
-import type { TenantDb, TenantRecord } from '../../services/tenant-service.js';
+import { sanitizeInput } from '../../middleware/security';
+import { TenantService } from '../../services/tenant-service';
+import type { TenantDb, TenantRecord } from '../../services/tenant-service';
 
 // ─── Helper: create mock Fastify request/reply ─────────────────────────────
 

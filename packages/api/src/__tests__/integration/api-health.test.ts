@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { createTestServer } from '../helpers/test-server.js';
+import { createTestServer } from '../helpers/test-server';
 import type { FastifyInstance } from 'fastify';
 
 /**

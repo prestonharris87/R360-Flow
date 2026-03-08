@@ -14,11 +14,13 @@
     "db:migrate": "pnpm --filter @r360/db migrate",
     "db:studio": "pnpm --filter @r360/db studio",
     "db:seed": "pnpm tsx scripts/seed.ts",
+    "start": "./scripts/dev-start.sh",
     "setup": "./scripts/dev-setup.sh"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
     "@types/node": "^20.14.0",
+    "concurrently": "^9.1.0",
     "eslint": "^9.0.0",
     "prettier": "^3.3.0",
     "tsx": "^4.21.0",

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Fastify, { type FastifyInstance } from 'fastify';
-import { securityMiddleware, sanitizeInput } from '../../middleware/security.js';
+import { securityMiddleware, sanitizeInput } from '../../middleware/security';
 
 // ─── sanitizeInput unit tests ───────────────────────────────────────────────
 

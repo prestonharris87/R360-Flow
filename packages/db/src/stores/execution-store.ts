@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm';
-import { getDb } from '../connection.js';
-import { executions } from '../schema/executions.js';
+import { getDb } from '../connection';
+import { executions } from '../schema/executions';
 
 export interface CreateExecutionParams {
   id: string;

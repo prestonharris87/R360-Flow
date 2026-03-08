@@ -5,9 +5,9 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { bootstrapN8nContainer, resetBootstrap } from '../bootstrap.js';
-import { R360NodeTypes } from '../node-types.js';
-import { ExecutionService } from '../execution-service.js';
+import { bootstrapN8nContainer, resetBootstrap } from '../bootstrap';
+import { R360NodeTypes } from '../node-types';
+import { ExecutionService } from '../execution-service';
 
 const TEST_ENCRYPTION_KEY = 'test-key-32-bytes-long-xxxxxxxx';
 const TEST_MASTER_KEY = 'master-key-for-testing-purposes!';

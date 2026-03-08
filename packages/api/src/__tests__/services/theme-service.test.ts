@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { ThemeService } from '../../services/theme-service.js';
-import type { ThemeStore, ThemeConfig } from '../../services/theme-service.js';
+import { ThemeService } from '../../services/theme-service';
+import type { ThemeStore, ThemeConfig } from '../../services/theme-service';
 
 function createMockStore(): ThemeStore & {
   get: ReturnType<typeof vi.fn>;

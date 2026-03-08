@@ -8,11 +8,11 @@
  * the forward and reverse translation pipelines respectively.
  */
 
-import { mapWBNodeToN8nNode, buildNodeNameMap } from './node-mapping.js';
-import { mapEdgesToConnections } from './connection-mapping.js';
-import { mapN8nToWBNode, mapConnectionsToEdges } from './reverse-mapping.js';
-import type { WorkflowParameters } from './types.js';
-import type { DiagramModel, WorkflowBuilderNode, WorkflowBuilderEdge } from './wb-types.js';
+import { mapWBNodeToN8nNode, buildNodeNameMap } from './node-mapping';
+import { mapEdgesToConnections } from './connection-mapping';
+import { mapN8nToWBNode, mapConnectionsToEdges } from './reverse-mapping';
+import type { WorkflowParameters } from './types';
+import type { DiagramModel, WorkflowBuilderNode, WorkflowBuilderEdge } from './wb-types';
 
 // n8n-compatible types (locally defined, no n8n imports)
 export type {
@@ -27,7 +27,7 @@ export type {
   IConnections,
   WorkflowParameters,
   WorkflowSettings,
-} from './types.js';
+} from './types';
 
 // Workflow Builder types (locally defined mirrors of SDK types)
 export type {
@@ -39,7 +39,10 @@ export type {
   WorkflowBuilderNodeType,
   Viewport,
   LayoutDirection,
-} from './wb-types.js';
+} from './wb-types';
+
+// Utility exports
+export { stripNodeTypePrefix } from './reverse-mapping';
 
 /**
  * Translate a Workflow Builder DiagramModel to n8n WorkflowParameters.

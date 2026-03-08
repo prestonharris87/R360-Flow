@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import Fastify, { type FastifyInstance } from 'fastify';
-import { templateRoutes } from '../../routes/template-routes.js';
-import { TemplateService } from '../../services/template-service.js';
+import { templateRoutes } from '../../routes/template-routes';
+import { TemplateService } from '../../services/template-service';
 import type {
   TemplateStore,
   TemplateRecord,
-} from '../../services/template-service.js';
+} from '../../services/template-service';
 
 // ---------------------------------------------------------------------------
 // In-memory TemplateStore for route-level testing

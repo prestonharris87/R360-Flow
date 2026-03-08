@@ -2,8 +2,8 @@ import {
   pgTable, uuid, varchar, boolean,
   timestamp, pgEnum, index,
 } from 'drizzle-orm/pg-core';
-import { tenants } from './tenants.js';
-import { workflows } from './workflows.js';
+import { tenants } from './tenants';
+import { workflows } from './workflows';
 
 export const httpMethodEnum = pgEnum('http_method', [
   'GET', 'POST', 'PUT', 'PATCH', 'DELETE',

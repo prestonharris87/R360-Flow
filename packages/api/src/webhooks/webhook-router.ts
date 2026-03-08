@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { WebhookRegistry } from './webhook-registry.js';
+import { WebhookRegistry } from './webhook-registry';
 
 export interface WebhookRequest {
   tenantId: string;

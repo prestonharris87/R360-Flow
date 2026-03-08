@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { CodeSandbox, type SandboxConfig } from '../../sandbox/code-sandbox.js';
+import { CodeSandbox, type SandboxConfig } from '../../sandbox/code-sandbox';
 
 const defaultConfig: SandboxConfig = {
   memoryLimitMb: 64,

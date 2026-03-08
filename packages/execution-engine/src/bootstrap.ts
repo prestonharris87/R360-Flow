@@ -20,8 +20,16 @@
 import 'reflect-metadata';
 import { Container } from '@n8n/di';
 import { InstanceSettings, BinaryDataService } from 'n8n-core';
+import { CredentialTypeRegistry } from './credential-types';
 
 let bootstrapped = false;
+
+/**
+ * Module-level singleton for the credential type registry.
+ * Initialized during bootstrapN8nContainer() and accessible via
+ * getCredentialTypeRegistry().
+ */
+let credentialTypeRegistryInstance: CredentialTypeRegistry | null = null;
 
 export interface BootstrapOptions {
   /** System-level encryption key for n8n internals (NOT per-tenant). */
@@ -94,6 +102,12 @@ export async function bootstrapN8nContainer(options: BootstrapOptions): Promise<
   const binaryDataService = Container.get(BinaryDataService);
   await binaryDataService.init();
 
+  // 5. CredentialTypeRegistry -- loads credential type definitions from n8n-nodes-base
+  //    Standalone class (not part of n8n DI). Loaded once, shared across all tenants.
+  //    Must be initialized after DI bootstrap so that n8n-core's loaders work correctly.
+  credentialTypeRegistryInstance = new CredentialTypeRegistry();
+  await credentialTypeRegistryInstance.init();
+
   bootstrapped = true;
 }
 
@@ -106,6 +120,21 @@ export function isBootstrapped(): boolean {
 }
 
 /**
+ * Get the credential type registry singleton.
+ * Available after bootstrapN8nContainer() has been called.
+ *
+ * @throws {Error} If bootstrap has not been called yet.
+ */
+export function getCredentialTypeRegistry(): CredentialTypeRegistry {
+  if (!credentialTypeRegistryInstance) {
+    throw new Error(
+      'CredentialTypeRegistry not available. Call bootstrapN8nContainer() first.'
+    );
+  }
+  return credentialTypeRegistryInstance;
+}
+
+/**
  * Reset bootstrap state. FOR TESTING ONLY.
  * Does not reset the DI container itself -- services remain registered.
  * This only resets the idempotency guard so bootstrapN8nContainer() can
@@ -113,4 +142,5 @@ export function isBootstrapped(): boolean {
  */
 export function resetBootstrap(): void {
   bootstrapped = false;
+  credentialTypeRegistryInstance = null;
 }
